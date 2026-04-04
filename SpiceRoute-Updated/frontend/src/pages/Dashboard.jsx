@@ -1,5 +1,10 @@
 import StaffManagement from '../components/StaffManagement.jsx';
+import {
+  staffAPI, menuAPI, ingredientsAPI, feedbackAPI, ordersAPI,  // add ordersAPI
+  announcementsAPI, shiftsAPI, paymentsAPI, wasteAPI, analyticsAPI
+} from '../api/index.js';
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+
 import { motion, AnimatePresence } from 'framer-motion';
 const MotionDiv = motion.div;
 import {
@@ -13,10 +18,7 @@ import {
 import { useAuth, useOrders } from '../context/useContextHooks';
 import { useNavigate } from 'react-router-dom';
 import POS from '../components/POS';
-import {
-  staffAPI, menuAPI, ingredientsAPI, feedbackAPI,
-  announcementsAPI, shiftsAPI, paymentsAPI, wasteAPI, analyticsAPI
-} from '../api/index.js';
+
 import { useSocket } from '../api/socket.js';
 
 /* ─────────────── SIDEBAR ─────────────── */
@@ -96,8 +98,9 @@ const Header = ({ title, notifications, onMarkAllRead, onRefresh }) => {
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showNotifs]);
-  // ───────────────────────────────────────────────────────────────────────────
+  // ───────────────────────────────────────────────────────────────────────────  
 
+  
   return (
     <div className="h-16 flex items-center justify-between px-8 border-b border-white/5 bg-bg-main/80 backdrop-blur-xl sticky top-0 z-40">
       <h2 className="text-lg font-bold text-white">{title}</h2>
@@ -241,11 +244,12 @@ const OverviewTab = ({ orders, dashStats, menu, ingredients, topItems }) => {
 };
 
 /* ─────────────── LIVE ORDERS TAB ─────────────── */
-const OrdersTab = ({ orders, updateOrderStatus, deleteOrder, user }) => {
+const OrdersTab = ({ orders, updateOrderStatus, deleteOrder, user,claimOrder }) => {
   const [filter, setFilter] = useState('all');
   const [paying, setPaying] = useState(null);
   const [payMethod, setPayMethod] = useState('cash');
   const { paymentsAPI: pAPI } = { paymentsAPI };
+  
 
   const statusColors = {
     pending:   'border-yellow-500/30 text-yellow-400 bg-yellow-500/10',
@@ -256,10 +260,15 @@ const OrdersTab = ({ orders, updateOrderStatus, deleteOrder, user }) => {
     paid:      'border-primary/30 text-primary bg-primary/10',
     cancelled: 'border-red-500/30 text-red-400 bg-red-500/10',
   };
-
+  
   const nextStatus = { pending:'confirmed', confirmed:'preparing', preparing:'ready', ready:'served', served:'paid' };
-  const filters = ['all','pending','confirmed','preparing','ready','served','paid'];
-  const filtered = filter === 'all' ? orders : orders.filter(o => o.status === filter);
+  const captainVisibleStatuses = ['ready', 'served', 'paid'];
+  const isCaptain = user.role === 'captain';
+  const baseOrders = isCaptain ? orders.filter(o => captainVisibleStatuses.includes(o.status)) : orders;
+  const filters = isCaptain
+  ? ['all', 'ready', 'served', 'paid']
+  : ['all','pending','confirmed','preparing','ready','served','paid'];
+  const filtered = filter === 'all' ? baseOrders : baseOrders.filter(o => o.status === filter);
 
   const handlePayment = async (order) => {
     try {
@@ -274,7 +283,7 @@ const OrdersTab = ({ orders, updateOrderStatus, deleteOrder, user }) => {
         {filters.map(f => (
           <button key={f} onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${filter===f?'bg-primary text-white':'bg-white/5 text-text-muted border border-white/10 hover:text-white'}`}>
-            {f==='all'?`All (${orders.length})`:f}
+            {f==='all'?`All (${baseOrders.length})`:f}
           </button>
         ))}
       </div>
@@ -301,7 +310,12 @@ const OrdersTab = ({ orders, updateOrderStatus, deleteOrder, user }) => {
                     <p className="text-primary font-bold">${parseFloat(order.total).toFixed(2)}</p>
                   </div>
                 </div>
-
+                 {isCaptain && order.status === 'ready' && (
+                 <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-2 mb-3 animate-pulse">
+                   <span className="text-lg">🍽️</span>
+                    <p className="text-green-400 text-xs font-bold uppercase tracking-wider">Food Ready — Collect & Serve</p>
+                  </div>
+                  )}
                 <div className="flex flex-wrap gap-2 text-xs text-text-muted mb-4">
                   {items.map((item,i) => (
                     <span key={i} className="bg-white/5 rounded-lg px-2 py-1">
@@ -315,6 +329,12 @@ const OrdersTab = ({ orders, updateOrderStatus, deleteOrder, user }) => {
                 )}
 
                 <div className="flex gap-2 flex-wrap">
+                  {user.role === 'captain' && !order.captain_id && (
+  <button onClick={() => claimOrder(order.id)}
+    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-bold uppercase transition-all">
+    ✋ Claim Order
+  </button>
+)}
                   {nextStatus[order.status] && (
                     <button onClick={() => updateOrderStatus(order.id, nextStatus[order.status])}
                       className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-bold uppercase transition-all">
@@ -905,6 +925,12 @@ const ProfileTab = ({ user }) => {
   );
 };
 
+const claimOrder = async (orderId) => {
+  try {
+    await ordersAPI.claim(orderId);
+    fetchOrders();
+  } catch (e) { console.error('claimOrder', e); }
+  };
 /* ─────────────── MAIN DASHBOARD ─────────────── */
 const Dashboard = () => {
   const { user } = useAuth();
@@ -978,7 +1004,7 @@ const Dashboard = () => {
             <MotionDiv key={activeTab} initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.15}}>
               {activeTab === 'overview'     && <OverviewTab orders={orders} dashStats={dashStats} menu={menu} ingredients={ingredients} topItems={topItems}/>}
               {activeTab === 'pos'          && <POS user={user} />}
-              {activeTab === 'orders'       && <OrdersTab orders={orders} updateOrderStatus={updateOrderStatus} deleteOrder={deleteOrder} user={user}/>}
+              {activeTab === 'orders'       && <OrdersTab orders={orders} updateOrderStatus={updateOrderStatus} deleteOrder={deleteOrder} claimOrder={claimOrder} user={user}/>}
               {activeTab === 'menu'         && <MenuTab menu={menu} toggleMenuAvailability={toggleMenuAvailability} fetchMenu={fetchMenu}/>}
               {activeTab === 'inventory'    && <InventoryTab ingredients={ingredients} updateIngredientStock={() => {}} fetchIngredients={fetchIngredients}/>}
               {activeTab === 'tables'       && <TablesTab user={user}/>}

@@ -19,7 +19,9 @@ router.get('/', authenticate, async (req, res) => {
     if (date)   query = query.gte('created_at', `${date}T00:00:00`).lte('created_at', `${date}T23:59:59`);
 
     // Captains see their own orders only
-    if (req.user.role === 'captain') query = query.eq('captain_id', req.user.id);
+if (req.user.role === 'captain') {
+  query = query.or(`captain_id.eq.${req.user.id},captain_id.is.null`);
+}
 
     const { data, error } = await query;
     if (error) return res.status(500).json({ error: error.message });

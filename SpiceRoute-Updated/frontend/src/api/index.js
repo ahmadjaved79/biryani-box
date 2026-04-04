@@ -41,7 +41,10 @@ export const ordersAPI = {
   updateItemStatus: (orderId, item_id, cook_status) => api.patch(`/orders/${orderId}/item-status`, { item_id, cook_status }),
   delete: (id) => api.delete(`/orders/${id}`),
   getStats: () => api.get('/orders/stats/summary'),
+  claim: (id) => api.patch(`/orders/${id}/claim`), 
+    // ADD THIS
 };
+
 
 // MENU
 export const menuAPI = {
@@ -150,6 +153,17 @@ export const wasteAPI = {
 export const trackingAPI = {
   track: (orderId) => api.get(`/orders/track/${orderId}`),
   getByCustomer: (email) => api.get(`/orders/by-customer/${email}`),
+};
+
+// DELIVERY
+export const deliveryAPI = {
+  getAvailable:  () => api.get('/delivery/available'),
+  getMyOrders:   () => api.get('/delivery/my-orders'),
+  getCompleted:  () => api.get('/delivery/completed'),
+  getStats:      () => api.get('/delivery/stats'),
+  accept:        (id) => api.patch(`/delivery/${id}/accept`),
+  pickedUp:      (id) => api.patch(`/delivery/${id}/picked-up`),
+  delivered:     (id, payment_method) => api.patch(`/delivery/${id}/delivered`, { payment_method }),
 };
 
 // CUSTOMER DASHBOARD (logged-in customer)

@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/useContextHooks';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User, ShieldCheck, Loader, ChefHat } from 'lucide-react';
+import { Lock, User, ShieldCheck, Loader, ChefHat,Truck  } from 'lucide-react';
 
 const ROLE_CREDENTIALS = {
   owner:   { email: 'owner@spiceroute.com',   hint: 'password123' },
   manager: { email: 'manager@spiceroute.com', hint: 'password123' },
   captain: { email: 'captain@spiceroute.com', hint: 'password123' },
   cook:    { email: 'cook@spiceroute.com',     hint: 'password123' },
+  delivery: { email: 'delivery@spiceroute.com', hint: 'password123' },
 };
 
 const Login = () => {
@@ -32,6 +33,7 @@ const Login = () => {
     if (result.success) {
       const role = result.user.role;
       if (role === 'cook') navigate('/cook-dashboard');
+      else if (role === 'delivery') navigate('/delivery/hub');
       else navigate('/dashboard');
     } else {
       setError(result.error);
@@ -43,6 +45,8 @@ const Login = () => {
     { id: 'manager', label: 'Manager', icon: User,         desc: 'Daily operations' },
     { id: 'captain', label: 'Captain', icon: User,         desc: 'Table & order management' },
     { id: 'cook',    label: 'Cook',    icon: ChefHat,      desc: 'Kitchen & food prep' },
+    { id: 'delivery', label: 'Delivery', icon: Truck,       desc: 'Order delivery' },
+
   ];
 
   return (
@@ -65,7 +69,7 @@ const Login = () => {
           <p className="text-text-muted text-sm">Staff Management Portal</p>
         </div>
 
-        <div className="grid grid-cols-4 gap-2 mb-8">
+        <div className="grid grid-cols-5 gap-2 mb-8">
           {roles.map((role) => (
             <button
               key={role.id}

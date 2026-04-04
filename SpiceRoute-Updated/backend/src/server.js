@@ -22,6 +22,7 @@ import paymentRoutes from './routes/payments.js';
 import announcementRoutes from './routes/announcements.js';
 import wasteRoutes from './routes/waste.js';
 import customerDashboardRoutes from './routes/customerDashboard.js';
+import deliveryRoutes from './routes/delivery.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -64,7 +65,7 @@ app.use('/api/customer', customerDashboardRoutes);
 // Socket.io - real-time events
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
-
+  app.use('/api/delivery', deliveryRoutes);
   socket.on('join-role', (role) => {
     socket.join(role);
     console.log(`Socket ${socket.id} joined room: ${role}`);
