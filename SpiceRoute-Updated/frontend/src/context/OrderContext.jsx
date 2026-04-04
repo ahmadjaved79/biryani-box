@@ -18,11 +18,22 @@ export const OrderProvider = ({ children }) => {
   }, []);
 
   const fetchMenu = useCallback(async () => {
-    try {
-      const res = await menuAPI.getAll();
-      setMenu(res.data);
-    } catch (e) { console.error('fetchMenu', e); }
-  }, []);
+  try {
+    const res = await menuAPI.getAll();
+    // Normalize DB snake_case to camelCase so all UI components work consistently
+    const normalized = (res.data || []).map(item => ({
+      ...item,
+      isVeg:      item.is_veg,
+      isHalal:    item.is_halal,
+      spiceLevel: item.spice_level,
+      available:  item.is_available,
+      stock:      item.stock !== undefined ? item.stock : 999,
+      price:      parseFloat(item.price || 0),
+      desc:       item.description,
+    }));
+    setMenu(normalized);
+  } catch (e) { console.error('fetchMenu', e); }
+}, []);
 
   const fetchIngredients = useCallback(async () => {
     try {
