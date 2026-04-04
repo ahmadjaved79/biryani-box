@@ -241,10 +241,10 @@ const MenuCategories = () => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType =
       filterVeg === 'all' ||
-      (filterVeg === 'veg' && item.isVeg) ||
-      (filterVeg === 'non-veg' && !item.isVeg);
-    const matchesSpice = filterSpice === 'all' || item.spiceLevel === Number(filterSpice);
-    const matchesHalal = !filterHalal || item.isHalal;
+      (filterVeg === 'veg' && item.is_veg) ||
+      (filterVeg === 'non-veg' && !item.is_veg);
+    const matchesSpice = filterSpice === 'all' || item.spice_level === Number(filterSpice);
+    const matchesHalal = !filterHalal || item.is_halal;
     return matchesSearch && matchesType && matchesSpice && matchesHalal;
   });
 
@@ -361,12 +361,12 @@ const MenuCategories = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
                     <div className="absolute top-6 left-6 flex flex-col gap-2">
-                      {item.isVeg && (
+                      {item.is_veg && (
                         <div className="px-3 py-1 bg-green-500 text-white text-[8px] font-black uppercase tracking-widest rounded-full shadow-lg">
                           Vegetarian
                         </div>
                       )}
-                      {item.isHalal && (
+                      {item.is_halal && (
                         <div className="px-3 py-1 bg-blue-600 text-white text-[8px] font-black uppercase tracking-widest rounded-full shadow-lg">
                           Halal Certified
                         </div>
@@ -374,15 +374,15 @@ const MenuCategories = () => {
                     </div>
                     <div className="absolute top-6 right-6 flex flex-col items-end gap-3">
                       <div
-                        className={`w-6 h-6 border-2 rounded-sm flex items-center justify-center p-0.5 ${item.isVeg ? 'border-green-500' : 'border-red-500'}`}
+                        className={`w-6 h-6 border-2 rounded-sm flex items-center justify-center p-0.5 ${item.is_veg ? 'border-green-500' : 'border-red-500'}`}
                       >
                         <div
-                          className={`w-full h-full rounded-full ${item.isVeg ? 'bg-green-500' : 'bg-red-500'}`}
+                          className={`w-full h-full rounded-full ${item.is_veg ? 'bg-green-500' : 'bg-red-500'}`}
                         />
                       </div>
-                      {item.spiceLevel > 0 && (
+                      {item.spice_level > 0 && (
                         <div className="flex gap-0.5 bg-black/40 backdrop-blur-md p-1.5 rounded-lg border border-white/10">
-                          {Array(item.spiceLevel).fill(0).map((_, i) => (
+                          {Array(item.spice_level).fill(0).map((_, i) => (
                             <span key={i} className="text-[10px]">🌶️</span>
                           ))}
                         </div>
@@ -399,31 +399,27 @@ const MenuCategories = () => {
                         {item.name}
                       </h3>
                       <span className="text-2xl font-bold text-primary font-heading">
-                        {item.price}
+                        ${parseFloat(item.price).toFixed(2)}
                       </span>
                     </div>
                     <p className="text-xs text-text-muted leading-relaxed mb-10 h-12 line-clamp-2 font-medium">
-                      {item.desc}
+                      {item.description}
                     </p>
                     <div className="flex items-center justify-between gap-4">
-                      <div className="text-xs text-text-muted">Stock: {item.stock}</div>
                       <button
                         onClick={() =>
                           addToCart({
-                            id: item.id,
-                            name: item.name,
-                            price: item.price,
-                            category: item.category,
+                            id:           item.id,
+                            name:         item.name,
+                            price:        parseFloat(item.price),
+                            category:     item.category,
+                            image_emoji:  item.image_emoji,
                           })
                         }
-                        disabled={!item.available || item.stock <= 0}
-                        className={`w-full py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] transition-all shadow-xl ${item.available && item.stock > 0 ? 'bg-white/5 border border-white/10 group-hover:bg-primary group-hover:text-white group-hover:border-primary text-white' : 'bg-white/10 text-white/30 cursor-not-allowed'}`}
+                        disabled={item.is_available === false}
+                        className={`w-full py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] transition-all shadow-xl ${item.is_available !== false ? 'bg-white/5 border border-white/10 group-hover:bg-primary group-hover:text-white group-hover:border-primary text-white' : 'bg-white/10 text-white/30 cursor-not-allowed'}`}
                       >
-                        {item.available && item.stock > 0
-                          ? 'Add To Box'
-                          : item.stock <= 0
-                            ? 'Out of Stock'
-                            : 'Unavailable'}
+                        {item.is_available !== false ? 'Add To Box' : 'Unavailable'}
                       </button>
                     </div>
                   </div>

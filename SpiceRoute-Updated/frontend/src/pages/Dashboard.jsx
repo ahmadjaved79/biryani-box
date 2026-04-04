@@ -1,5 +1,5 @@
 import StaffManagement from '../components/StaffManagement.jsx';
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 const MotionDiv = motion.div;
 import {
@@ -81,6 +81,23 @@ const Sidebar = ({ activeTab, setActiveTab, user, unreadCount }) => {
 const Header = ({ title, notifications, onMarkAllRead, onRefresh }) => {
   const [showNotifs, setShowNotifs] = useState(false);
   const unread = notifications.filter(n => !n.is_read);
+
+  // ── Click-outside ref for notification dropdown ─────────────────────────────
+  const notifRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifs(false);
+      }
+    };
+    if (showNotifs) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showNotifs]);
+  // ───────────────────────────────────────────────────────────────────────────
+
   return (
     <div className="h-16 flex items-center justify-between px-8 border-b border-white/5 bg-bg-main/80 backdrop-blur-xl sticky top-0 z-40">
       <h2 className="text-lg font-bold text-white">{title}</h2>
@@ -88,31 +105,50 @@ const Header = ({ title, notifications, onMarkAllRead, onRefresh }) => {
         <button onClick={onRefresh} className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-text-muted hover:text-primary transition-all">
           <RefreshCw size={14} />
         </button>
-        <div className="relative">
-          <button onClick={() => setShowNotifs(s => !s)}
-            className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-text-muted hover:text-white relative">
+        <div className="relative" ref={notifRef}>
+          <button
+            onClick={() => setShowNotifs(s => !s)}
+            className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-text-muted hover:text-white relative"
+          >
             <Bell size={16} />
-            {unread.length > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] text-white flex items-center justify-center font-bold">{unread.length}</span>}
+            {unread.length > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] text-white flex items-center justify-center font-bold">
+                {unread.length}
+              </span>
+            )}
           </button>
-          {showNotifs && (
-            <div className="absolute right-0 top-11 w-80 bg-bg-main border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-                <p className="text-sm font-bold text-white">Notifications</p>
-                <button onClick={onMarkAllRead} className="text-xs text-primary hover:underline">Mark all read</button>
-              </div>
-              <div className="max-h-72 overflow-y-auto divide-y divide-white/5">
-                {notifications.length === 0 ? (
-                  <p className="text-text-muted text-xs text-center py-6">No notifications</p>
-                ) : notifications.slice(0,15).map(n => (
-                  <div key={n.id} className={`px-4 py-3 ${!n.is_read ? 'bg-primary/5' : ''}`}>
-                    <p className="text-xs font-bold text-white">{n.title}</p>
-                    <p className="text-xs text-text-muted mt-0.5">{n.message}</p>
-                    <p className="text-[10px] text-text-muted/50 mt-1">{new Date(n.created_at).toLocaleTimeString()}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <AnimatePresence>
+            {showNotifs && (
+              <MotionDiv
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                transition={{ duration: 0.15 }}
+                className="absolute right-0 top-11 w-80 bg-bg-main border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
+              >
+                <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+                  <p className="text-sm font-bold text-white">Notifications</p>
+                  <button
+                    onClick={() => { onMarkAllRead(); }}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Mark all read
+                  </button>
+                </div>
+                <div className="max-h-72 overflow-y-auto divide-y divide-white/5">
+                  {notifications.length === 0 ? (
+                    <p className="text-text-muted text-xs text-center py-6">No notifications</p>
+                  ) : notifications.slice(0, 15).map(n => (
+                    <div key={n.id} className={`px-4 py-3 ${!n.is_read ? 'bg-primary/5' : ''}`}>
+                      <p className="text-xs font-bold text-white">{n.title}</p>
+                      <p className="text-xs text-text-muted mt-0.5">{n.message}</p>
+                      <p className="text-[10px] text-text-muted/50 mt-1">{new Date(n.created_at).toLocaleTimeString()}</p>
+                    </div>
+                  ))}
+                </div>
+              </MotionDiv>
+            )}
+          </AnimatePresence>
         </div>
         <p className="text-xs text-text-muted hidden md:block">
           {new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'America/New_York'})}
