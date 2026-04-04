@@ -28,25 +28,25 @@ const TIER_CONFIG = {
 };
 
 const ORDER_TIMELINE = [
-  { status: 'pending',   label: 'Order Placed',   icon: Package    },
-  { status: 'confirmed', label: 'Confirmed',       icon: CheckCircle2 },
-  { status: 'preparing', label: 'Being Prepared',  icon: Flame      },
-  { status: 'ready',     label: 'Ready',           icon: Utensils   },
-  { status: 'served',    label: 'Served',          icon: Star       },
-  { status: 'paid',      label: 'Completed',       icon: CreditCard },
+  { status: 'pending',   label: 'Placed',    icon: Package    },
+  { status: 'confirmed', label: 'Confirmed', icon: CheckCircle2 },
+  { status: 'preparing', label: 'Preparing', icon: Flame      },
+  { status: 'ready',     label: 'Ready',     icon: Utensils   },
+  { status: 'served',    label: 'Served',    icon: Star       },
+  { status: 'paid',      label: 'Done',      icon: CreditCard },
 ];
 
 // ─── Section shell ────────────────────────────────────────────────────────────
 const Section = ({ title, icon: Icon, action, children }) => (
-  <div className="bg-[#111] border border-white/8 rounded-2xl overflow-hidden">
-    <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-      <div className="flex items-center gap-2">
-        {Icon && <Icon size={16} className="text-primary" />}
-        <h2 className="text-sm font-bold text-white uppercase tracking-wider">{title}</h2>
+  <div className="bg-[#111] border border-white/8 rounded-2xl overflow-hidden w-full">
+    <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-white/5">
+      <div className="flex items-center gap-2 min-w-0">
+        {Icon && <Icon size={16} className="text-primary flex-shrink-0" />}
+        <h2 className="text-sm font-bold text-white uppercase tracking-wider truncate">{title}</h2>
       </div>
-      {action}
+      {action && <div className="flex-shrink-0 ml-2">{action}</div>}
     </div>
-    <div className="p-6">{children}</div>
+    <div className="p-4 sm:p-6 w-full overflow-hidden">{children}</div>
   </div>
 );
 
@@ -66,30 +66,30 @@ const CustomerOverview = ({ profile }) => {
     : 100;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       {/* Greeting + tier */}
-      <div className={`md:col-span-1 rounded-2xl p-6 border ${tc.border} ${tc.bg} flex flex-col gap-3`}>
+      <div className={`sm:col-span-1 rounded-2xl p-5 border ${tc.border} ${tc.bg} flex flex-col gap-3 overflow-hidden`}>
         <div className="flex items-center gap-3">
           <img
             src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.name || 'guest'}`}
-            className="w-12 h-12 rounded-full border-2 border-primary"
+            className="w-12 h-12 rounded-full border-2 border-primary flex-shrink-0 bg-white/10"
             alt=""
           />
-          <div>
+          <div className="min-w-0">
             <p className="text-xs text-text-muted uppercase tracking-widest">Welcome back</p>
-            <p className="text-white font-bold text-base">{profile?.name?.split(' ')[0] || '—'}</p>
+            <p className="text-white font-bold text-base truncate">{profile?.name?.split(' ')[0] || '—'}</p>
           </div>
         </div>
-        <div className={`flex items-center gap-2 self-start px-3 py-1 rounded-full border text-xs font-bold ${tc.color} ${tc.border} bg-black/30`}>
-          <Award size={12} /> {tier} Member
+        <div className={`flex items-center gap-2 self-start px-3 py-1 rounded-full border text-xs font-bold ${tc.color} ${tc.border} bg-black/30 whitespace-nowrap`}>
+          <Award size={12} className="flex-shrink-0" /> {tier} Member
         </div>
         {tc.next && (
-          <div>
-            <div className="flex justify-between text-[10px] text-text-muted mb-1">
-              <span>{profile?.loyalty_points || 0} pts</span>
-              <span>{tc.next} pts for {profile?.tier_benefits?.nextTier}</span>
+          <div className="w-full">
+            <div className="flex justify-between text-[10px] text-text-muted mb-1 gap-2">
+              <span className="flex-shrink-0">{profile?.loyalty_points || 0} pts</span>
+              <span className="truncate text-right">{tc.next} pts for {profile?.tier_benefits?.nextTier}</span>
             </div>
-            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden w-full">
               <div className="h-full bg-primary rounded-full transition-all duration-700" style={{ width: `${progress}%` }} />
             </div>
           </div>
@@ -101,12 +101,12 @@ const CustomerOverview = ({ profile }) => {
         { label: 'Total Orders',   value: profile?.total_orders || 0,               icon: Package,    color: 'text-blue-400',   bg: 'bg-blue-500/10',   border: 'border-blue-500/20' },
         { label: 'Total Spent',    value: fmt(profile?.total_spent),                icon: CreditCard, color: 'text-green-400',  bg: 'bg-green-500/10',  border: 'border-green-500/20' },
       ].map((s, i) => (
-        <div key={i} className={`rounded-2xl p-6 border ${s.border} ${s.bg} flex flex-col justify-between`}>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-bold text-text-muted uppercase tracking-wider">{s.label}</p>
-            <s.icon size={16} className={s.color} />
+        <div key={i} className={`rounded-2xl p-5 border ${s.border} ${s.bg} flex flex-col justify-between overflow-hidden`}>
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <p className="text-xs font-bold text-text-muted uppercase tracking-wider truncate">{s.label}</p>
+            <s.icon size={16} className={`${s.color} flex-shrink-0`} />
           </div>
-          <p className={`text-4xl font-black ${s.color}`}>{s.value}</p>
+          <p className={`text-3xl sm:text-4xl font-black ${s.color} truncate`}>{s.value}</p>
         </div>
       ))}
     </div>
@@ -156,24 +156,24 @@ const QuickActions = ({ navigate, cartCount, lastOrder }) => {
   ];
 
   return (
-    <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
       {actions.map((a, i) => (
         <button
           key={i}
           onClick={a.onClick}
-          className={`relative flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all group
+          className={`relative flex flex-col items-center gap-1.5 sm:gap-2 p-3 sm:p-4 rounded-2xl border transition-all group
             ${a.active
               ? 'border-white/10 bg-white/3 hover:border-primary/50 hover:bg-primary/5'
               : 'border-white/5 bg-white/2 opacity-50 cursor-not-allowed'}`}
         >
           {a.badge && (
-            <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+            <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center z-10">
               {a.badge}
             </span>
           )}
-          <a.icon size={20} className={`transition-colors ${a.active ? 'text-primary group-hover:scale-110' : 'text-white/30'}`} />
-          <p className="text-[10px] font-bold text-white uppercase tracking-wider text-center leading-tight">{a.label}</p>
-          <p className="text-[9px] text-text-muted text-center">{a.desc}</p>
+          <a.icon size={18} className={`transition-all flex-shrink-0 ${a.active ? 'text-primary' : 'text-white/30'}`} />
+          <p className="text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider text-center leading-tight w-full">{a.label}</p>
+          <p className="text-[8px] sm:text-[9px] text-text-muted text-center leading-tight hidden sm:block">{a.desc}</p>
         </button>
       ))}
     </div>
@@ -191,41 +191,44 @@ const OrderTracker = ({ order }) => {
 
   return (
     <div className="space-y-6">
-      {/* Status bar */}
-      <div className="flex items-start gap-0">
-        {ORDER_TIMELINE.map((step, i) => {
-          const done = i <= currentIdx;
-          const active = i === currentIdx;
-          return (
-            <div key={step.status} className="flex-1 flex flex-col items-center relative">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 transition-all
-                ${active ? 'bg-primary shadow-lg shadow-primary/40 scale-110' : done ? 'bg-primary/40' : 'bg-white/10'}`}>
-                <step.icon size={14} className={done ? 'text-white' : 'text-white/30'} />
+      {/* Status bar — horizontal scroll on mobile */}
+      <div className="w-full overflow-x-auto pb-2">
+        <div className="flex items-start min-w-[480px]">
+          {ORDER_TIMELINE.map((step, i) => {
+            const done = i <= currentIdx;
+            const active = i === currentIdx;
+            return (
+              <div key={step.status} className="flex-1 flex flex-col items-center relative">
+                {/* Connector line */}
+                {i < ORDER_TIMELINE.length - 1 && (
+                  <div className={`absolute top-4 left-1/2 w-full h-0.5 ${done ? 'bg-primary/50' : 'bg-white/10'}`} />
+                )}
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 flex-shrink-0 transition-all
+                  ${active ? 'bg-primary shadow-lg shadow-primary/40 scale-110' : done ? 'bg-primary/40' : 'bg-white/10'}`}>
+                  <step.icon size={14} className={done ? 'text-white' : 'text-white/30'} />
+                </div>
+                <p className={`text-[9px] font-bold mt-2 text-center uppercase tracking-wider px-1 ${active ? 'text-primary' : done ? 'text-white/60' : 'text-white/20'}`}>
+                  {step.label}
+                </p>
               </div>
-              {i < ORDER_TIMELINE.length - 1 && (
-                <div className={`absolute top-4 left-1/2 w-full h-0.5 ${done ? 'bg-primary/50' : 'bg-white/10'}`} />
-              )}
-              <p className={`text-[9px] font-bold mt-2 text-center uppercase tracking-wider ${active ? 'text-primary' : done ? 'text-white/60' : 'text-white/20'}`}>
-                {step.label}
-              </p>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Order details */}
-      <div className="bg-white/3 border border-white/8 rounded-xl p-4">
-        <div className="flex items-center justify-between mb-3">
-          <p className="font-mono text-xs font-bold text-primary">{order.id}</p>
-          <div className="flex items-center gap-1 text-xs text-text-muted">
+      <div className="bg-white/3 border border-white/8 rounded-xl p-4 overflow-hidden">
+        <div className="flex items-center justify-between mb-3 gap-2">
+          <p className="font-mono text-xs font-bold text-primary truncate">{order.id}</p>
+          <div className="flex items-center gap-1 text-xs text-text-muted flex-shrink-0">
             <Clock size={11} /> {fmtTime(order.created_at)}
           </div>
         </div>
         <div className="space-y-1 mb-3">
           {items.map((item, i) => (
-            <div key={i} className="flex justify-between text-xs">
-              <span className="text-white">{item.menu_item_name}</span>
-              <span className="text-text-muted">×{item.quantity}</span>
+            <div key={i} className="flex justify-between text-xs gap-2">
+              <span className="text-white truncate">{item.menu_item_name}</span>
+              <span className="text-text-muted flex-shrink-0">×{item.quantity}</span>
             </div>
           ))}
         </div>
@@ -243,32 +246,32 @@ const Recommendations = ({ items, onAddToCart }) => {
   if (!items.length) return <EmptyState icon={Sparkles} text="Recommendations load after your first order." />;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {items.map(item => (
         <div key={item.id}
-          className="relative bg-white/3 border border-white/8 rounded-xl p-4 flex flex-col gap-3 hover:border-primary/30 transition-all group">
+          className="relative bg-white/3 border border-white/8 rounded-xl p-4 flex flex-col gap-3 hover:border-primary/30 transition-all overflow-hidden">
           {item.is_reorder && (
-            <span className="absolute top-2 right-2 text-[9px] font-bold px-2 py-0.5 bg-primary/20 text-primary border border-primary/30 rounded-full uppercase">
+            <span className="absolute top-2 right-2 text-[9px] font-bold px-2 py-0.5 bg-primary/20 text-primary border border-primary/30 rounded-full uppercase whitespace-nowrap">
               Your Fave
             </span>
           )}
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">{item.image_emoji || '🍽️'}</span>
+          <div className="flex items-center gap-3 pr-16">
+            <span className="text-2xl flex-shrink-0">{item.image_emoji || '🍽️'}</span>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-white text-sm truncate">{item.name}</p>
-              <p className="text-text-muted text-[10px]">{item.category}</p>
+              <p className="text-text-muted text-[10px] truncate">{item.category}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-text-muted">
-            <Star size={10} className="text-yellow-400 fill-yellow-400" /> {item.rating}
+          <div className="flex items-center gap-2 text-[10px] text-text-muted flex-wrap">
+            <span className="flex items-center gap-1"><Star size={10} className="text-yellow-400 fill-yellow-400" /> {item.rating}</span>
             {item.is_veg && <span className="text-green-400">Veg</span>}
-            {'🌶'.repeat(item.spice_level || 1)}
+            <span>{'🌶'.repeat(item.spice_level || 1)}</span>
           </div>
-          <div className="flex items-center justify-between mt-auto">
+          <div className="flex items-center justify-between mt-auto gap-2">
             <p className="text-primary font-bold">{fmt(item.price)}</p>
             <button
               onClick={() => onAddToCart(item)}
-              className="flex items-center gap-1 px-3 py-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/20 rounded-lg text-[10px] font-bold transition-all group-hover:border-primary">
+              className="flex items-center gap-1 px-3 py-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/20 rounded-lg text-[10px] font-bold transition-all whitespace-nowrap flex-shrink-0">
               <Plus size={11} /> Add
             </button>
           </div>
@@ -290,21 +293,23 @@ const ActiveOffers = ({ offers }) => {
   };
 
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 gap-4">
       {offers.map(offer => (
-        <div key={offer.id} className={`rounded-xl border p-4 ${typeStyle[offer.type] || typeStyle.announcement}`}>
+        <div key={offer.id} className={`rounded-xl border p-4 overflow-hidden ${typeStyle[offer.type] || typeStyle.announcement}`}>
           <div className="flex items-start justify-between gap-2 mb-2">
-            <p className="font-bold text-white text-sm">{offer.title}</p>
-            {offer.discount_pct > 0 && (
-              <span className="text-[10px] font-black text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full whitespace-nowrap">
-                {offer.discount_pct}% OFF
-              </span>
-            )}
-            {offer.free_item && (
-              <span className="text-[10px] font-black text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-full whitespace-nowrap">
-                FREE
-              </span>
-            )}
+            <p className="font-bold text-white text-sm flex-1 min-w-0">{offer.title}</p>
+            <div className="flex-shrink-0">
+              {offer.discount_pct > 0 && (
+                <span className="text-[10px] font-black text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full whitespace-nowrap">
+                  {offer.discount_pct}% OFF
+                </span>
+              )}
+              {offer.free_item && (
+                <span className="text-[10px] font-black text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-full whitespace-nowrap">
+                  FREE
+                </span>
+              )}
+            </div>
           </div>
           <p className="text-text-muted text-xs mb-3">{offer.description}</p>
           {offer.min_order > 0 && (
@@ -312,8 +317,8 @@ const ActiveOffers = ({ offers }) => {
           )}
           {offer.code && (
             <div className="mt-3 flex items-center gap-2 bg-black/30 rounded-lg px-3 py-2">
-              <Tag size={11} className="text-primary" />
-              <span className="font-mono text-xs font-bold text-primary tracking-widest">{offer.code}</span>
+              <Tag size={11} className="text-primary flex-shrink-0" />
+              <span className="font-mono text-xs font-bold text-primary tracking-widest truncate">{offer.code}</span>
             </div>
           )}
           {offer.expires && (
@@ -334,13 +339,13 @@ const CartSnapshot = ({ cart, total, updateQuantity, removeFromCart, navigate })
   return (
     <div className="space-y-3">
       {cart.map(item => (
-        <div key={item.id} className="flex items-center gap-4 bg-white/3 border border-white/8 rounded-xl px-4 py-3">
-          <span className="text-xl">{item.image_emoji || '🍽️'}</span>
+        <div key={item.id} className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl px-3 sm:px-4 py-3 overflow-hidden">
+          <span className="text-xl flex-shrink-0">{item.image_emoji || '🍽️'}</span>
           <div className="flex-1 min-w-0">
             <p className="font-bold text-white text-sm truncate">{item.name}</p>
             <p className="text-text-muted text-xs">{fmt(item.price)} each</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <button onClick={() => updateQuantity(item.id, item.quantity - 1)}
               className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:border-primary hover:text-primary transition-all">
               <Minus size={11} />
@@ -351,20 +356,20 @@ const CartSnapshot = ({ cart, total, updateQuantity, removeFromCart, navigate })
               <Plus size={11} />
             </button>
           </div>
-          <p className="text-primary font-bold text-sm w-16 text-right">{fmt(item.price * item.quantity)}</p>
-          <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-300 transition-colors ml-1">
+          <p className="text-primary font-bold text-sm w-14 text-right flex-shrink-0">{fmt(item.price * item.quantity)}</p>
+          <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-300 transition-colors ml-1 flex-shrink-0">
             <X size={14} />
           </button>
         </div>
       ))}
 
-      <div className="flex items-center justify-between pt-3 border-t border-white/5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-3 border-t border-white/5">
         <div>
           <p className="text-text-muted text-xs">Subtotal</p>
           <p className="text-2xl font-black text-primary">{fmt(total)}</p>
         </div>
         <button onClick={() => navigate('/checkout')}
-          className="btn-primary px-8 py-3 flex items-center gap-2 text-sm font-bold">
+          className="btn-primary w-full sm:w-auto px-8 py-3 flex items-center justify-center gap-2 text-sm font-bold">
           Checkout <ChevronRight size={16} />
         </button>
       </div>
@@ -389,17 +394,17 @@ const OrderHistory = ({ orders, onReorder }) => {
           <div key={order.id} className="bg-white/3 border border-white/8 rounded-xl overflow-hidden">
             <button
               onClick={() => setExpanded(isOpen ? null : order.id)}
-              className="w-full flex items-center gap-4 px-5 py-4 hover:bg-white/3 transition-all text-left">
+              className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4 hover:bg-white/3 transition-all text-left">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <p className="font-mono text-xs font-bold text-primary">{order.id}</p>
-                  <span className={`text-[9px] font-bold uppercase ${statusColor[order.status] || 'text-text-muted'}`}>
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                  <p className="font-mono text-xs font-bold text-primary truncate max-w-[120px] sm:max-w-none">{order.id}</p>
+                  <span className={`text-[9px] font-bold uppercase flex-shrink-0 ${statusColor[order.status] || 'text-text-muted'}`}>
                     {order.status}
                   </span>
                 </div>
                 <p className="text-text-muted text-xs truncate">
-                  {items.slice(0, 3).map(i => i.menu_item_name).join(', ')}
-                  {items.length > 3 ? ` +${items.length - 3} more` : ''}
+                  {items.slice(0, 2).map(i => i.menu_item_name).join(', ')}
+                  {items.length > 2 ? ` +${items.length - 2} more` : ''}
                 </p>
               </div>
               <div className="text-right flex-shrink-0">
@@ -412,16 +417,16 @@ const OrderHistory = ({ orders, onReorder }) => {
               {isOpen && (
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}>
-                  <div className="px-5 pb-4 border-t border-white/5 pt-3">
+                  <div className="px-4 sm:px-5 pb-4 border-t border-white/5 pt-3">
                     <div className="space-y-1 mb-4">
                       {items.map((item, i) => (
-                        <div key={i} className="flex justify-between text-xs">
-                          <span className="text-white">{item.menu_item_name} <span className="text-text-muted">×{item.quantity}</span></span>
-                          <span className="text-text-muted">{fmt(item.unit_price * item.quantity)}</span>
+                        <div key={i} className="flex justify-between text-xs gap-2">
+                          <span className="text-white truncate">{item.menu_item_name} <span className="text-text-muted">×{item.quantity}</span></span>
+                          <span className="text-text-muted flex-shrink-0">{fmt(item.unit_price * item.quantity)}</span>
                         </div>
                       ))}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <button
                         onClick={() => onReorder(items)}
                         className="flex items-center gap-1.5 px-4 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/20 rounded-lg text-xs font-bold transition-all">
@@ -478,7 +483,7 @@ const FeedbackWidget = ({ user }) => {
   return (
     <div className="space-y-4">
       {/* Type */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {[
           { id: 'complaint',  label: '😠 Complaint' },
           { id: 'suggestion', label: '💡 Suggest' },
@@ -486,7 +491,7 @@ const FeedbackWidget = ({ user }) => {
           { id: 'general',    label: '📝 General' },
         ].map(t => (
           <button key={t.id} onClick={() => setForm(p => ({ ...p, feedback_type: t.id }))}
-            className={`py-2 rounded-xl border text-[10px] font-bold transition-all text-center
+            className={`py-2 px-1 rounded-xl border text-[10px] font-bold transition-all text-center
               ${form.feedback_type === t.id ? 'border-primary bg-primary/10 text-primary' : 'border-white/10 bg-white/3 text-text-muted hover:border-primary/40'}`}>
             {t.label}
           </button>
@@ -531,11 +536,11 @@ const LoyaltyDisplay = ({ profile }) => {
   const allTiers = ['Bronze', 'Silver', 'Gold', 'Platinum'];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Points + tier */}
-      <div className={`rounded-2xl border ${tc.border} ${tc.bg} p-6 text-center`}>
+      <div className={`rounded-2xl border ${tc.border} ${tc.bg} p-5 text-center overflow-hidden`}>
         <p className="text-text-muted text-xs uppercase tracking-widest mb-2">Your Points</p>
-        <p className={`text-6xl font-black ${tc.color}`}>{pts.toLocaleString()}</p>
+        <p className={`text-5xl sm:text-6xl font-black ${tc.color}`}>{pts.toLocaleString()}</p>
         <p className={`text-sm font-bold mt-1 ${tc.color}`}>{tier} Member</p>
         {benefits.nextTier && (
           <p className="text-text-muted text-xs mt-3">
@@ -550,29 +555,29 @@ const LoyaltyDisplay = ({ profile }) => {
       </div>
 
       {/* Tier ladder */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
         {allTiers.map((t) => {
           const cfg = TIER_CONFIG[t];
           const active = t === tier;
           const pointMap = { Bronze: 0, Silver: 500, Gold: 2000, Platinum: 5000 };
           return (
-            <div key={t} className={`rounded-xl border p-3 text-center transition-all ${active ? `${cfg.border} ${cfg.bg}` : 'border-white/5 bg-white/2 opacity-50'}`}>
-              <p className={`text-xs font-black uppercase ${active ? cfg.color : 'text-text-muted'}`}>{t}</p>
-              <p className="text-[9px] text-text-muted mt-1">{pointMap[t].toLocaleString()} pts</p>
-              {active && <div className="w-2 h-2 rounded-full bg-primary mx-auto mt-2" />}
+            <div key={t} className={`rounded-xl border p-2 sm:p-3 text-center transition-all overflow-hidden ${active ? `${cfg.border} ${cfg.bg}` : 'border-white/5 bg-white/2 opacity-50'}`}>
+              <p className={`text-[10px] sm:text-xs font-black uppercase truncate ${active ? cfg.color : 'text-text-muted'}`}>{t}</p>
+              <p className="text-[8px] sm:text-[9px] text-text-muted mt-1">{pointMap[t].toLocaleString()} pts</p>
+              {active && <div className="w-2 h-2 rounded-full bg-primary mx-auto mt-1.5" />}
             </div>
           );
         })}
       </div>
 
       {/* How to earn */}
-      <div className="bg-white/3 border border-white/8 rounded-xl p-5">
+      <div className="bg-white/3 border border-white/8 rounded-xl p-4 sm:p-5">
         <p className="text-sm font-bold text-white mb-3">How to Earn Points</p>
         <div className="space-y-2 text-xs text-text-muted">
-          <div className="flex justify-between"><span>Every $1 spent</span><span className="text-primary font-bold">+10 pts</span></div>
-          <div className="flex justify-between"><span>Write feedback</span><span className="text-primary font-bold">+50 pts</span></div>
-          <div className="flex justify-between"><span>Birthday bonus</span><span className="text-primary font-bold">+200 pts</span></div>
-          <div className="flex justify-between"><span>Refer a friend</span><span className="text-primary font-bold">+500 pts</span></div>
+          <div className="flex justify-between gap-2"><span>Every $1 spent</span><span className="text-primary font-bold flex-shrink-0">+10 pts</span></div>
+          <div className="flex justify-between gap-2"><span>Write feedback</span><span className="text-primary font-bold flex-shrink-0">+50 pts</span></div>
+          <div className="flex justify-between gap-2"><span>Birthday bonus</span><span className="text-primary font-bold flex-shrink-0">+200 pts</span></div>
+          <div className="flex justify-between gap-2"><span>Refer a friend</span><span className="text-primary font-bold flex-shrink-0">+500 pts</span></div>
         </div>
       </div>
     </div>
@@ -585,7 +590,6 @@ const PopularNow = ({ onAddToCart }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch top 4 available items by rating (real menu data)
     menuAPI.getAll({ available: 'true' })
       .then(r => {
         const sorted = (r.data || []).sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating)).slice(0, 4);
@@ -599,18 +603,19 @@ const PopularNow = ({ onAddToCart }) => {
   if (!items.length) return <EmptyState icon={TrendingUp} text="Menu data loading…" />;
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
       {items.map(item => (
-        <div key={item.id} className="bg-white/3 border border-white/8 rounded-xl p-4 flex flex-col gap-2 hover:border-primary/30 transition-all group">
-          <span className="text-3xl">{item.image_emoji || '🍽️'}</span>
-          <p className="font-bold text-white text-sm">{item.name}</p>
-          <div className="flex items-center gap-1 text-[10px] text-text-muted">
-            <Star size={10} className="text-yellow-400 fill-yellow-400" /> {item.rating} · {item.category}
+        <div key={item.id} className="bg-white/3 border border-white/8 rounded-xl p-3 sm:p-4 flex flex-col gap-2 hover:border-primary/30 transition-all overflow-hidden">
+          <span className="text-2xl sm:text-3xl">{item.image_emoji || '🍽️'}</span>
+          <p className="font-bold text-white text-sm truncate">{item.name}</p>
+          <div className="flex items-center gap-1 text-[10px] text-text-muted flex-wrap">
+            <span className="flex items-center gap-0.5"><Star size={10} className="text-yellow-400 fill-yellow-400" /> {item.rating}</span>
+            <span className="truncate">· {item.category}</span>
           </div>
-          <div className="flex items-center justify-between mt-auto">
+          <div className="flex items-center justify-between mt-auto gap-1">
             <p className="text-primary font-bold text-sm">{fmt(item.price)}</p>
             <button onClick={() => onAddToCart(item)}
-              className="px-2 py-1 bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/20 rounded-lg text-[10px] font-bold transition-all">
+              className="px-2 py-1 bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/20 rounded-lg text-[10px] font-bold transition-all whitespace-nowrap flex-shrink-0">
               + Add
             </button>
           </div>
@@ -686,23 +691,23 @@ const CustomerDashboardPage = () => {
     <div className="min-h-screen bg-bg-main text-white">
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-6 pt-24 pb-20 space-y-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-20 space-y-4 sm:space-y-6 w-full overflow-hidden">
         {/* Page title */}
         <div className="flex items-center justify-between pt-4">
-          <div>
-            <h1 className="text-2xl font-black text-white">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-black text-white">
               My Dashboard
             </h1>
-            <p className="text-text-muted text-sm mt-0.5">
+            <p className="text-text-muted text-sm mt-0.5 hidden sm:block">
               {new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', timeZone:'America/New_York' })}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <button onClick={loadAll} className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-text-muted hover:text-primary transition-all">
               <RefreshCw size={14} />
             </button>
             <button onClick={() => { logout(); navigate('/'); }}
-              className="px-4 py-2 border border-white/10 rounded-xl text-xs font-bold text-text-muted hover:border-red-500/30 hover:text-red-400 transition-all">
+              className="px-3 sm:px-4 py-2 border border-white/10 rounded-xl text-xs font-bold text-text-muted hover:border-red-500/30 hover:text-red-400 transition-all whitespace-nowrap">
               Sign Out
             </button>
           </div>
@@ -732,8 +737,8 @@ const CustomerDashboardPage = () => {
           </Section>
         </motion.div>
 
-        {/* 4+5 · Recommendations & Offers (2-col) */}
-        <div className="grid lg:grid-cols-2 gap-6">
+        {/* 4+5 · Recommendations & Offers (2-col on lg) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
             <Section title="Recommended For You" icon={Sparkles}>
               <Recommendations items={recommendations} onAddToCart={addToCart} />
@@ -767,8 +772,8 @@ const CustomerDashboardPage = () => {
           </Section>
         </motion.div>
 
-        {/* 8+9 · Loyalty + Feedback (2-col) */}
-        <div className="grid lg:grid-cols-2 gap-6">
+        {/* 8+9 · Loyalty + Feedback (2-col on lg) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
             <Section title="Loyalty & Rewards" icon={Award}>
               <LoyaltyDisplay profile={profile} />
