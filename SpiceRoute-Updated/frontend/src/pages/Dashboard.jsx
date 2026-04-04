@@ -570,7 +570,7 @@ const FeedbackTab = () => {
   const handleReply = async () => {
     if (!reply.trim()) return;
     try {
-      await feedbackAPI.reply(selected.id, { staff_reply: reply, status: 'resolved' });
+      await feedbackAPI.reply(selected.id, { staff_reply: reply, status: 'resolved', customer_email: selected.customer_email });
       setFeedbacks(prev => prev.map(f => f.id===selected.id ? {...f, staff_reply:reply, status:'resolved'} : f));
       setSelected(null); setReply('');
     } catch(e) { console.error(e); }
@@ -598,6 +598,8 @@ const FeedbackTab = () => {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <p className="font-bold text-white text-sm">{fb.customer_name || 'Anonymous'}</p>
+                  {fb.customer_email && <a href={`mailto:${fb.customer_email}`} className="text-primary text-xs hover:underline">{fb.customer_email}</a>}
+                  {fb.customer_phone && <a href={`tel:${fb.customer_phone}`} className="text-text-muted text-xs block">{fb.customer_phone}</a>}
                   <p className="text-text-muted text-xs">{new Date(fb.created_at).toLocaleDateString()}</p>
                 </div>
                 <div className="flex gap-2">
@@ -637,7 +639,7 @@ const FeedbackTab = () => {
 /* ─────────────── ANNOUNCEMENTS TAB ─────────────── */
 const AnnouncementsTab = ({ user }) => {
   const [announcements, setAnnouncements] = useState([]);
-  const [form, setForm] = useState({ title:'', message:'', type:'info', target:'all' });
+  const [form, setForm] = useState({ title:'', message:'', type:'info', target:'all', send_email: false });
   const [saving, setSaving] = useState(false);
 
   const load = () => announcementsAPI.getAll().then(r => setAnnouncements(r.data)).catch(()=>{});
@@ -652,7 +654,7 @@ const AnnouncementsTab = ({ user }) => {
   };
 
   const handleDelete = async (id) => {
-    await announcementsAPI.delete(id); await load();
+    await announcementsAPI.delete(id); 87-await load();
   };
 
   const typeColors = { info:'border-blue-500/30 text-blue-400 bg-blue-500/10', promo:'border-green-500/30 text-green-400 bg-green-500/10', special:'border-yellow-500/30 text-yellow-400 bg-yellow-500/10', warning:'border-red-500/30 text-red-400 bg-red-500/10' };
@@ -675,6 +677,11 @@ const AnnouncementsTab = ({ user }) => {
         </div>
         <textarea value={form.message} onChange={e=>setForm(p=>({...p,message:e.target.value}))} rows={2} placeholder="Message..."
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary resize-none mb-3"/>
+        <label className="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
+        <input type="checkbox" checked={form.send_email} onChange={e=>setForm(p=>({...p,send_email:e.target.checked}))}
+         className="accent-primary" />
+             Also send email to customers
+        </label>
         <button onClick={handleCreate} disabled={saving} className="px-6 py-2.5 bg-primary text-white rounded-xl text-xs font-bold uppercase hover:bg-primary-hover flex items-center gap-2">
           {saving?<Loader size={12} className="animate-spin"/>:<Megaphone size={12}/>} Publish
         </button>

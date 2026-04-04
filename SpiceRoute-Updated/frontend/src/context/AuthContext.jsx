@@ -48,20 +48,36 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Customer register
-  const customerRegister = async (name, email, password, phone) => {
+ const customerRegister = async (name, email, password, phone) => {
     setLoading(true); setAuthError(null);
     try {
-      const res = await customersAPI.register({ name, email, password, phone });
+      await customersAPI.sendOtp({ name, email, password, phone });
+      setLoading(false);
+      return { success: true, otpSent: true, email };
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Registration failed';
+      setAuthError(msg);
+      setLoading(false);
+      return { success: false, error: msg };
+    }
+  };
+
+  const verifyOtp = async (email, otp) => {
+    setLoading(true); setAuthError(null);
+    try {
+      const res = await customersAPI.verifyOtp(email, otp);
       const { token, user: userData } = res.data;
       localStorage.setItem('sr_token', token);
       localStorage.setItem('sr_user', JSON.stringify(userData));
       setUser(userData);
+      setLoading(false);
       return { success: true, user: userData };
     } catch (err) {
-      const msg = err.response?.data?.error || 'Registration failed';
+      const msg = err.response?.data?.error || 'OTP verification failed';
       setAuthError(msg);
+      setLoading(false);
       return { success: false, error: msg };
-    } finally { setLoading(false); }
+    }
   };
 
   const logout = () => {
@@ -71,7 +87,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, customerLogin, customerRegister, logout, loading, authError }}>
+<AuthContext.Provider value={{ user, login, customerLogin, customerRegister, verifyOtp, logout, loading, authError }}>
       {children}
     </AuthContext.Provider>
   );

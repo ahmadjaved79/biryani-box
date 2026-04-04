@@ -1,8 +1,14 @@
 import express from 'express';
+import nodemailer from 'nodemailer';
 import { supabase } from '../config/supabase.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+});
 
 router.get('/', async (req, res) => {
   try {
@@ -17,10 +23,30 @@ router.get('/', async (req, res) => {
 
 router.post('/', authenticate, authorize('owner', 'manager'), async (req, res) => {
   try {
-    const { data, error } = await supabase.from('announcements')
-      .insert([{ ...req.body, created_by: req.user.id }]).select().single();
+    const { send_email } = req.body;
+    const insertData = { ...req.body, created_by: req.user.id };
+    delete insertData.send_email;
+
+    const { data, error } = await supabase.from('announcements').insert([insertData]).select().single();
     if (error) return res.status(400).json({ error: error.message });
-    res.status(201).json(data);
+
+    // Send email to customers if opted
+    if (send_email && ['all', 'customer'].includes(req.body.target)) {
+      const { data: customers } = await supabase.from('customers').select('email, name').eq('is_active', true).eq('is_email_verified', true);
+      if (customers && customers.length > 0) {
+        const emails = customers.map(c => c.email);
+        try {
+          await transporter.sendMail({
+            from: `"SpiceRoute" <${process.env.EMAIL_USER}>`,
+            bcc: emails,
+            subject: `${req.body.title} — SpiceRoute`,
+            html: `<h2>${req.body.title}</h2><p>${req.body.message}</p><hr/><p style="font-size:12px;color:#999">You received this because you have an account with SpiceRoute.</p>`,
+          });
+        } catch (mailErr) { console.error('Announcement mail error:', mailErr.message); }
+      }
+    }
+
+    res.status(201).json({ ...data, email_sent: !!send_email });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

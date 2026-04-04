@@ -108,7 +108,9 @@ export const feedbackAPI = {
 
 // CUSTOMERS
 export const customersAPI = {
-  register: (data) => api.post('/customers/register', data),
+  sendOtp: (data) => api.post('/customers/send-otp', data),
+  verifyOtp: (email, otp) => api.post('/customers/verify-otp', { email, otp }),
+  resendOtp: (email) => api.post('/customers/resend-otp', { email }),
   login: (email, password) => api.post('/customers/login', { email, password }),
   getOrders: (email) => api.get(`/customers/${email}/orders`),
   getLoyalty: (id) => api.get(`/customers/${id}/loyalty`),
@@ -116,7 +118,6 @@ export const customersAPI = {
   getHighValue: () => api.get('/customers/high-value'),
   getProfile: (id) => api.get(`/customers/${id}/profile`),
 };
-
 // SHIFTS
 export const shiftsAPI = {
   clockIn: () => api.post('/shifts/clock-in'),
@@ -134,7 +135,7 @@ export const paymentsAPI = {
 // ANNOUNCEMENTS
 export const announcementsAPI = {
   getAll: (target) => api.get('/announcements', { params: { target } }),
-  create: (data) => api.post('/announcements', data),
+  create: (data) => api.post('/announcements', data),  // pass send_email: true in data
   update: (id, data) => api.patch(`/announcements/${id}`, data),
   delete: (id) => api.delete(`/announcements/${id}`),
 };
