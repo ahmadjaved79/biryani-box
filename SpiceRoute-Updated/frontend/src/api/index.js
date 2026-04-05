@@ -174,3 +174,10 @@ export const customerDashboardAPI = {
   getRecommendations:() => api.get('/customer/recommendations'),
   getOffers:         () => api.get('/customer/offers'),
 };
+
+export const cateringAPI = {
+  submit:     (data)        => api.post('/catering', data),
+  getAll:     (params)      => api.get('/catering', { params }),
+  getMy:      ()            => api.get('/catering/my'),
+  update:     (id, data)    => api.patch(`/catering/${id}`, data),
+};

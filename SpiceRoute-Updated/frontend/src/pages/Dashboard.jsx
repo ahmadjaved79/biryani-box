@@ -1,7 +1,7 @@
 import StaffManagement from '../components/StaffManagement.jsx';
 import {
   staffAPI, menuAPI, ingredientsAPI, feedbackAPI, ordersAPI,  // add ordersAPI
-  announcementsAPI, shiftsAPI, paymentsAPI, wasteAPI, analyticsAPI
+  announcementsAPI, shiftsAPI, paymentsAPI, wasteAPI, analyticsAPI,cateringAPI,
 } from '../api/index.js';
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 
@@ -13,7 +13,7 @@ import {
   BarChart3, TrendingDown, Calendar, DollarSign, Flame, Eye, ChefHat,
   Clock, CheckCircle2, AlertCircle, FileText, Edit2, X, Save, RefreshCw,
   MessageSquare, TrendingUp, Package, CreditCard, Megaphone, Loader,
-  UserCheck, ClipboardList, Star, Filter, Search
+  UserCheck, ClipboardList, Star, Filter, Search, Mail, MapPin
 } from 'lucide-react';
 import { useAuth, useOrders } from '../context/useContextHooks';
 import { useNavigate } from 'react-router-dom';
@@ -34,6 +34,8 @@ const Sidebar = ({ activeTab, setActiveTab, user, unreadCount }) => {
     { id: 'inventory',      label: 'Inventory',       icon: Package,        roles: ['owner','manager'] },
     { id: 'tables',         label: 'Table Status',    icon: LayoutDashboard,roles: ['owner','manager','captain'] },
     { id: 'reservations',   label: 'Reservations',    icon: Calendar,       roles: ['owner','manager','captain'] },
+    { id: 'catering',      label: 'Catering',          icon: ChefHat,         roles: ['owner','manager'] },
+
     { id: 'feedback',       label: 'Feedback Box',    icon: MessageSquare,  roles: ['owner','manager'] },
     { id: 'announcements',  label: 'Announcements',   icon: Megaphone,      roles: ['owner','manager'] },
     { id: 'payments',       label: 'Payments',        icon: CreditCard,     roles: ['owner','manager'] },
@@ -692,6 +694,159 @@ const FeedbackTab = () => {
   );
 };
 
+
+/* ─────────────── CATERING TAB ─────────────── */
+const CateringTab = () => {
+  const [requests, setRequests] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [form,     setForm]     = useState({ status:'', quoted_amount:'', staff_notes:'', rejection_reason:'' });
+  const [saving,   setSaving]   = useState(false);
+  const [filter,   setFilter]   = useState('all');
+
+  const SC = {
+    submitted: { label:'Submitted', color:'text-yellow-400', bg:'bg-yellow-500/10', border:'border-yellow-500/30' },
+    reviewing: { label:'Reviewing', color:'text-blue-400',   bg:'bg-blue-500/10',   border:'border-blue-500/30' },
+    accepted:  { label:'Accepted',  color:'text-green-400',  bg:'bg-green-500/10',  border:'border-green-500/30' },
+    rejected:  { label:'Rejected',  color:'text-red-400',    bg:'bg-red-500/10',    border:'border-red-500/30' },
+    completed: { label:'Completed', color:'text-primary',    bg:'bg-primary/10',    border:'border-primary/30' },
+    cancelled: { label:'Cancelled', color:'text-text-muted', bg:'bg-white/5',       border:'border-white/10' },
+  };
+
+  const load = async () => {
+    setLoading(true);
+    try { const r = await cateringAPI.getAll(); setRequests(r.data || []); }
+    catch(e) { console.error(e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const openUpdate = (req) => {
+    setSelected(req);
+    setForm({ status:req.status||'submitted', quoted_amount:req.quoted_amount||'', staff_notes:req.staff_notes||'', rejection_reason:req.rejection_reason||'' });
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await cateringAPI.update(selected.id, {
+        status:           form.status        || undefined,
+        quoted_amount:    form.quoted_amount ? parseFloat(form.quoted_amount) : undefined,
+        staff_notes:      form.staff_notes   || undefined,
+        rejection_reason: form.rejection_reason || undefined,
+      });
+      await load(); setSelected(null);
+    } catch(e) { alert(e.response?.data?.error || 'Update failed'); }
+    setSaving(false);
+  };
+
+  const filtered = filter === 'all' ? requests : requests.filter(r => r.status === filter);
+  const inp = "w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-primary placeholder-text-muted";
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        {['all','submitted','reviewing','accepted','rejected','completed'].map(f => (
+          <button key={f} onClick={() => setFilter(f)}
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex-shrink-0 ${filter===f?'bg-primary text-white':'bg-white/5 text-text-muted border border-white/10 hover:text-white'}`}>
+            {f==='all'?`All (${requests.length})`:f}
+          </button>
+        ))}
+      </div>
+
+      {loading
+        ? <div className="flex justify-center py-12"><Loader size={24} className="animate-spin text-primary"/></div>
+        : filtered.length === 0
+          ? <p className="text-center py-10 text-text-muted text-sm">No catering requests found</p>
+          : (
+            <div className="space-y-3">
+              {filtered.map(req => {
+                const sc = SC[req.status] || SC.submitted;
+                return (
+                  <div key={req.id} className={`border rounded-2xl p-4 ${sc.border} ${sc.bg}`}>
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <p className="font-bold text-white">{req.customer_name}</p>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase ${sc.color} ${sc.border}`}>{sc.label}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-muted">
+                          <span className="flex items-center gap-1"><Calendar size={10}/>{req.event_date}</span>
+                          <span className="flex items-center gap-1"><Users size={10}/>{req.guest_count} guests</span>
+                          {req.event_type && <span className="flex items-center gap-1"><ChefHat size={10}/>{req.event_type}</span>}
+                          {req.location   && <span className="flex items-center gap-1"><MapPin size={10}/>{req.location}</span>}
+                        </div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-text-muted">
+                          {req.customer_phone && <span>📞 {req.customer_phone}</span>}
+                          {req.customer_email && <span className="flex items-center gap-1"><Mail size={10}/>{req.customer_email}</span>}
+                          {req.budget_range   && <span>💰 {req.budget_range}</span>}
+                        </div>
+                        {req.menu_preferences && <p className="text-xs text-text-muted mt-1 italic line-clamp-1">"{req.menu_preferences}"</p>}
+                        {req.quoted_amount    && <p className="text-primary font-bold text-sm mt-1">Quoted: ${parseFloat(req.quoted_amount).toFixed(2)}</p>}
+                        {req.staff_notes      && <p className="text-xs text-white/70 mt-1 bg-white/5 rounded-lg px-2 py-1 line-clamp-1">Note: {req.staff_notes}</p>}
+                      </div>
+                      <button onClick={() => openUpdate(req)}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-primary/10 border border-primary/20 text-primary text-xs font-bold rounded-xl hover:bg-primary hover:text-white transition-all flex-shrink-0">
+                        <Edit2 size={11}/> Manage
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+      {selected && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-bg-main border border-white/10 rounded-2xl p-5 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-white">Manage — {selected.customer_name}</h3>
+              <button onClick={() => setSelected(null)}><X size={18} className="text-text-muted hover:text-white"/></button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1">Update Status</label>
+                <select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} className={inp}>
+                  {['submitted','reviewing','accepted','rejected','completed','cancelled'].map(s=>(
+                    <option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1">Quoted Amount ($)</label>
+                <input type="number" value={form.quoted_amount} onChange={e=>setForm(p=>({...p,quoted_amount:e.target.value}))} placeholder="0.00" className={inp}/>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1">Notes to Customer</label>
+                <textarea value={form.staff_notes} onChange={e=>setForm(p=>({...p,staff_notes:e.target.value}))} rows={2} className={`${inp} resize-none`} placeholder="Details, next steps..."/>
+              </div>
+              {form.status === 'rejected' && (
+                <div>
+                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1">Rejection Reason</label>
+                  <textarea value={form.rejection_reason} onChange={e=>setForm(p=>({...p,rejection_reason:e.target.value}))} rows={2} className={`${inp} resize-none`}/>
+                </div>
+              )}
+              {selected.customer_email && (
+                <p className="text-[10px] text-text-muted flex items-center gap-1">
+                  <Mail size={10}/> Email auto-sent to {selected.customer_email} on accept/reject
+                </p>
+              )}
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => setSelected(null)} className="flex-1 py-3 border border-white/20 rounded-xl text-xs font-bold text-text-muted hover:bg-white/5">Cancel</button>
+              <button onClick={handleSave} disabled={saving}
+                className="flex-1 py-3 bg-primary text-white rounded-xl text-xs font-bold uppercase hover:bg-primary-hover flex items-center justify-center gap-2 disabled:opacity-60">
+                {saving?<Loader size={12} className="animate-spin"/>:<Save size={12}/>} Save & Notify
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 /* ─────────────── ANNOUNCEMENTS TAB ─────────────── */
 const AnnouncementsTab = ({ user }) => {
   const [announcements, setAnnouncements] = useState([]);
@@ -925,12 +1080,7 @@ const ProfileTab = ({ user }) => {
   );
 };
 
-const claimOrder = async (orderId) => {
-  try {
-    await ordersAPI.claim(orderId);
-    fetchOrders();
-  } catch (e) { console.error('claimOrder', e); }
-  };
+
 /* ─────────────── MAIN DASHBOARD ─────────────── */
 const Dashboard = () => {
   const { user } = useAuth();
@@ -964,6 +1114,13 @@ const Dashboard = () => {
     const interval = setInterval(() => { fetchOrders(); loadNotifications(); }, 30000);
     return () => clearInterval(interval);
   }, []);
+  
+  const claimOrder = async (orderId) => {
+  try {
+    await ordersAPI.claim(orderId);
+    fetchOrders();
+  } catch (e) { console.error('claimOrder', e); }
+  };
 
   useSocket(user?.role, {
     'new-order-received': () => { fetchOrders(); fetchDashStats(); loadNotifications(); },
@@ -984,7 +1141,7 @@ const Dashboard = () => {
 
   const tabTitles = {
     overview:'Command Hub', pos:'Order Booking', orders:'Live Orders', menu:'Menu Master',
-    inventory:'Inventory', tables:'Table Status', reservations:'Reservations',
+    inventory:'Inventory', tables:'Table Status', reservations:'Reservations', catering:'Catering Requests',
     feedback:'Feedback Box', announcements:'Announcements', payments:'Payments',
     shifts:'Shift Logs', staff:'My Profile',
   };
@@ -1009,6 +1166,7 @@ const Dashboard = () => {
               {activeTab === 'inventory'    && <InventoryTab ingredients={ingredients} updateIngredientStock={() => {}} fetchIngredients={fetchIngredients}/>}
               {activeTab === 'tables'       && <TablesTab user={user}/>}
               {activeTab === 'reservations' && <ReservationsTab/>}
+              {activeTab === 'catering'     && <CateringTab/>}
               {activeTab === 'feedback'     && <FeedbackTab/>}
               {activeTab === 'announcements'&& <AnnouncementsTab user={user}/>}
               {activeTab === 'shifts'       && <ShiftsTab/>}
