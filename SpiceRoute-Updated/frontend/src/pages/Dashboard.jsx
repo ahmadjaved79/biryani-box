@@ -1,4 +1,5 @@
 import StaffManagement from '../components/StaffManagement.jsx';
+import FinanceTab from './FinanceTab.jsx';
 import {
   staffAPI, menuAPI, ingredientsAPI, feedbackAPI, ordersAPI,
   announcementsAPI, shiftsAPI, paymentsAPI, wasteAPI, analyticsAPI, cateringAPI,
@@ -17,6 +18,7 @@ import {
 import { useAuth, useOrders } from '../context/useContextHooks';
 import { useNavigate } from 'react-router-dom';
 import POS from '../components/POS';
+
 import { useSocket } from '../api/socket.js';
 
 const CSS = {
@@ -56,10 +58,12 @@ const Sidebar = ({ activeTab, setActiveTab, user, unreadCount, mobileOpen, setMo
     { id: 'catering',      label: 'Catering',       icon: ChefHat,         roles: ['owner','manager'] },
     { id: 'feedback',      label: 'Feedback Box',   icon: MessageSquare,   roles: ['owner','manager'] },
     { id: 'announcements', label: 'Announcements',  icon: Megaphone,       roles: ['owner','manager'] },
+    { id: 'finance', label: 'Finance', icon: DollarSign, roles: ['owner','manager'] },
     { id: 'payments',      label: 'Payments',       icon: CreditCard,      roles: ['owner','manager'] },
     { id: 'shifts',        label: 'Shift Logs',     icon: UserCheck,       roles: ['owner','manager'] },
     { id: 'staff',         label: 'Staff',          icon: Users,           roles: ['owner','manager'] },
     { id: 'profile',       label: 'My Shift',       icon: Clock,           roles: ['captain','manager','cook'] },
+   
   ];
   const items = allItems.filter(i => i.roles.includes(user.role));
   const handleNav = (id) => { setActiveTab(id); setMobileOpen(false); };
@@ -886,7 +890,7 @@ const Dashboard = () => {
     loadNotifications();
     const interval = setInterval(()=>{ fetchOrders(); loadNotifications(); }, 30000);
     return ()=>clearInterval(interval);
-  }, []);
+  },[]);
 
   const claimOrder = async (orderId) => { try { await ordersAPI.claim(orderId); fetchOrders(); } catch(e) { console.error('claimOrder', e); } };
 
@@ -902,7 +906,7 @@ const Dashboard = () => {
   };
   const handleRefresh = () => { fetchOrders(); fetchMenu(); fetchIngredients(); if (['owner','manager'].includes(user.role)) fetchDashStats(); loadNotifications(); };
 
-  const tabTitles = { overview:'Command Hub', pos:'Order Booking', orders:'Live Orders', menu:'Menu Master', inventory:'Inventory', tables:'Table Status', reservations:'Reservations', catering:'Catering', feedback:'Feedback Box', announcements:'Announcements', payments:'Payments', shifts:'Shift Logs', staff:'Staff Management', profile:'My Shift' };
+  const tabTitles = { overview:'Command Hub', pos:'Order Booking', orders:'Live Orders', menu:'Menu Master', inventory:'Inventory', tables:'Table Status', reservations:'Reservations', catering:'Catering', feedback:'Feedback Box', announcements:'Announcements',finance: 'Financial Overview', payments:'Payments', shifts:'Shift Logs', staff:'Staff Management', profile:'My Shift' };
 
   return (
     <div className="min-h-screen bg-[#0c0c0f] text-white">
@@ -922,6 +926,7 @@ const Dashboard = () => {
               {activeTab==='catering'      && <CateringTab/>}
               {activeTab==='feedback'      && <FeedbackTab/>}
               {activeTab==='announcements' && <AnnouncementsTab user={user}/>}
+              {activeTab === 'finance' && <FinanceTab />}
               {activeTab==='shifts'        && <ShiftsTab/>}
               {activeTab==='staff'         && <StaffManagement currentUser={user}/>}
               {activeTab==='profile'       && <ProfileTab user={user}/>}

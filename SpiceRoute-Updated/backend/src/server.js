@@ -23,6 +23,8 @@ import announcementRoutes from './routes/announcements.js';
 import wasteRoutes from './routes/waste.js';
 import customerDashboardRoutes from './routes/customerDashboard.js';
 import deliveryRoutes from './routes/delivery.js';
+import financeRoutes from './routes/finance.js';
+
 
 const app = express();
 const httpServer = createServer(app);
@@ -61,6 +63,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/waste', wasteRoutes);
 app.use('/api/customer', customerDashboardRoutes);
+app.use('/api/finance', financeRoutes);
 
 // Socket.io - real-time events
 io.on('connection', (socket) => {

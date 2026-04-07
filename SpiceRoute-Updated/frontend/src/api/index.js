@@ -186,3 +186,11 @@ export const cateringAPI = {
   getMy:      ()            => api.get('/catering/my'),
   update:     (id, data)    => api.patch(`/catering/${id}`, data),
 };
+
+export const financeAPI = {
+  getSummary:    (params) => api.get('/finance/summary',  { params }),
+  getExpenses:   (params) => api.get('/finance/expenses', { params }),
+  addExpense:    (data)   => api.post('/finance/expenses', data),
+  bulkExpenses:  (rows)   => api.post('/finance/expenses/bulk', { rows }),
+  deleteExpense: (id)     => api.delete(`/finance/expenses/${id}`),
+};
