@@ -153,9 +153,10 @@ router.post('/', authenticate, async (req, res) => {
     }
 
     // ── Create order ────────────────────────────────────────────────────────
-    const subtotal = parseFloat(items.reduce((s, i) => s + i.price * i.quantity, 0).toFixed(2));
-    const tax      = parseFloat((subtotal * 0.08).toFixed(2));
-    const total    = parseFloat((subtotal + tax).toFixed(2));
+    const subtotal       = parseFloat(items.reduce((s, i) => s + i.price * i.quantity, 0).toFixed(2));
+    const tax            = parseFloat((subtotal * 0.08).toFixed(2));
+    const rewardDiscount = parseFloat(req.body.reward_discount || 0);
+    const total          = parseFloat(Math.max(0, subtotal + tax - rewardDiscount).toFixed(2));
     const orderId  = `ORD_${Date.now()}`;
 
     const { data: order, error: orderErr } = await supabase
@@ -172,6 +173,7 @@ router.post('/', authenticate, async (req, res) => {
         subtotal, tax, total,
         status: 'pending',
         payment_status: 'unpaid',
+        ...(rewardDiscount > 0 ? { reward_discount: rewardDiscount } : {}),
       }])
       .select()
       .single();
@@ -203,19 +205,52 @@ router.post('/', authenticate, async (req, res) => {
       }
     }
 
+    // ── Deduct loyalty points if rewards were used ───────────────────────
+    const pointsUsed = parseInt(req.body.points_used || 0);
+    if (pointsUsed > 0 && resolvedCustomerId) {
+      const { data: cust } = await supabase
+        .from('customers').select('loyalty_points').eq('id', resolvedCustomerId).single();
+      if (cust && cust.loyalty_points >= pointsUsed) {
+        await supabase.from('customers')
+          .update({ loyalty_points: cust.loyalty_points - pointsUsed })
+          .eq('id', resolvedCustomerId);
+      }
+    }
+
     // ── Update table status ────────────────────────────────────────────────
     if (table_id && order_type === 'dine-in') {
       await supabase.from('restaurant_tables').update({ status: 'occupied' }).eq('id', table_id);
     }
 
-    // ── Notify cook ────────────────────────────────────────────────────────
-    await supabase.from('notifications').insert([{
+    // ── Notify cook always ────────────────────────────────────────────────
+    const notifs = [{
       target_role:      'cook',
-      title:            'New Order',
+      title:            '🍳 New Order',
       message:          `Order ${orderId} · ${order_type === 'dine-in' ? `Table ${table_number || '?'}` : order_type} needs attention`,
       type:             'order',
       related_order_id: orderId,
-    }]);
+    }];
+
+    // ── Role-based routing: captain for dine-in, delivery for home-delivery ──
+    if (order_type === 'dine-in') {
+      notifs.push({
+        target_role:      'captain',
+        title:            '🪑 New Dine-In Order',
+        message:          `Table ${table_number || '?'} — Order ${orderId} ready to manage`,
+        type:             'order',
+        related_order_id: orderId,
+      });
+    } else if (order_type === 'delivery') {
+      notifs.push({
+        target_role:      'delivery',
+        title:            '🛵 New Delivery Order',
+        message:          `${customer_name || 'Customer'} — ${delivery_address || 'Address not set'} — Order ${orderId}`,
+        type:             'order',
+        related_order_id: orderId,
+      });
+    }
+
+    await supabase.from('notifications').insert(notifs);
 
     res.status(201).json(order);
   } catch (err) { res.status(500).json({ error: err.message }); }
