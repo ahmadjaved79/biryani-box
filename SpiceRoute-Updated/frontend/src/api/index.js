@@ -58,10 +58,12 @@ export const menuAPI = {
 
 // INGREDIENTS
 export const ingredientsAPI = {
-  getAll: () => api.get('/ingredients'),
-  update: (id, data) => api.put(`/ingredients/${id}`, data),
-  create: (data) => api.post('/ingredients', data),
+  getAll:  () => api.get('/ingredients'),
+  create:  (data) => api.post('/ingredients', data),
+  update:  (id, data) => api.put(`/ingredients/${id}`, data),
+  delete:  (id) => api.delete(`/ingredients/${id}`),
   restock: (id, amount) => api.patch(`/ingredients/${id}/restock`, { amount }),
+  use:     (id, amount) => api.patch(`/ingredients/${id}/use`, { amount }),
 };
 
 // STAFF
@@ -75,8 +77,11 @@ export const staffAPI = {
 
 // TABLES
 export const tablesAPI = {
-  getAll: () => api.get('/tables'),
+  getAll:       () => api.get('/tables'),
+  create:       (data) => api.post('/tables', data),
+  update:       (id, data) => api.patch(`/tables/${id}`, data),
   updateStatus: (id, status) => api.patch(`/tables/${id}/status`, { status }),
+  delete:       (id) => api.delete(`/tables/${id}`),
 };
 
 // RESERVATIONS
