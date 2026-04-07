@@ -18,7 +18,6 @@ import {
 import { useAuth, useOrders } from '../context/useContextHooks';
 import { useNavigate } from 'react-router-dom';
 import POS from '../components/POS';
-
 import { useSocket } from '../api/socket.js';
 
 const CSS = {
@@ -63,7 +62,6 @@ const Sidebar = ({ activeTab, setActiveTab, user, unreadCount, mobileOpen, setMo
     { id: 'shifts',        label: 'Shift Logs',     icon: UserCheck,       roles: ['owner','manager'] },
     { id: 'staff',         label: 'Staff',          icon: Users,           roles: ['owner','manager'] },
     { id: 'profile',       label: 'My Shift',       icon: Clock,           roles: ['captain','manager','cook'] },
-   
   ];
   const items = allItems.filter(i => i.roles.includes(user.role));
   const handleNav = (id) => { setActiveTab(id); setMobileOpen(false); };
@@ -156,7 +154,8 @@ const Header = ({ title, notifications, onMarkAllRead, onRefresh, onMenuToggle }
 };
 
 /* ─────────────── OVERVIEW TAB ─────────────── */
-const OverviewTab = ({ orders, dashStats, menu, ingredients, topItems }) => {
+/* ─────────────── COMMAND HUB / ANALYTICS TAB ─────────────── */
+const OverviewTab = ({ orders, dashStats, menu, ingredients }) => {
   const stats = dashStats?.today || {};
   const cards = [
     { label:"Today's Revenue", value:`₹${(stats.revenue||0).toFixed(2)}`, icon:DollarSign, color:'text-emerald-400', bg:'bg-emerald-500/[0.07]', border:'border-emerald-500/20' },
@@ -166,49 +165,200 @@ const OverviewTab = ({ orders, dashStats, menu, ingredients, topItems }) => {
   ];
   const lowStock = ingredients.filter(i => parseFloat(i.stock) <= parseFloat(i.min_stock));
   const liveOrders = orders.filter(o => ['pending','confirmed','preparing'].includes(o.status));
+
+  // Analytics
+  const [period, setPeriod] = useState('month');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+  const [topItems, setTopItems] = useState([]);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  const fetchTopItems = useCallback(async (p, from, to) => {
+    setAnalyticsLoading(true);
+    try {
+      const params = { period: p };
+      if (p === 'custom' && from && to) { params.from = from; params.to = to; }
+      const res = await analyticsAPI.getTopItems(params);
+      setTopItems(res.data || []);
+    } catch { setTopItems([]); }
+    setAnalyticsLoading(false);
+  }, []);
+
+  useEffect(() => { fetchTopItems(period, customFrom, customTo); }, [period]);
+
+  const handleCustomApply = () => {
+    if (customFrom && customTo) fetchTopItems('custom', customFrom, customTo);
+  };
+
+  const maxCount = topItems.length > 0 ? Math.max(...topItems.map(i => i.count), 1) : 1;
+  const totalRevenue = topItems.reduce((s, i) => s + (i.revenue || 0), 0);
+  const PIE_COLORS = ['#e63946','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
+
+  // SVG Pie Chart
+  const PieChartSVG = ({ data, size = 148 }) => {
+    const valid = (data || []).filter(d => (d.revenue || 0) > 0).slice(0, 8);
+    if (!valid.length) return <div className="flex items-center justify-center h-36 text-[#4b5563] text-xs">No revenue data</div>;
+    const total = valid.reduce((s, d) => s + d.revenue, 0);
+    let cumAngle = -Math.PI / 2;
+    const cx = size / 2, cy = size / 2, r = size / 2 - 6;
+    const slices = valid.map((d, i) => {
+      const fraction = d.revenue / total;
+      const angle = fraction * 2 * Math.PI;
+      const x1 = cx + r * Math.cos(cumAngle), y1 = cy + r * Math.sin(cumAngle);
+      cumAngle += angle;
+      const x2 = cx + r * Math.cos(cumAngle), y2 = cy + r * Math.sin(cumAngle);
+      return { path:`M${cx},${cy}L${x1},${y1}A${r},${r},0,${fraction>0.5?1:0},1,${x2},${y2}Z`, color:PIE_COLORS[i%PIE_COLORS.length], name:d.name, pct:(fraction*100).toFixed(1), revenue:d.revenue };
+    });
+    return (
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {slices.map((s,i) => <path key={i} d={s.path} fill={s.color} stroke="#111115" strokeWidth="2"><title>{s.name}: ₹{s.revenue.toFixed(0)} ({s.pct}%)</title></path>)}
+        <circle cx={cx} cy={cy} r={r*0.4} fill="#111115"/>
+        <text x={cx} y={cy-5} textAnchor="middle" fill="#fff" fontSize="9" fontWeight="bold">Revenue</text>
+        <text x={cx} y={cy+8} textAnchor="middle" fill="#e63946" fontSize="8">₹{(total/1000).toFixed(1)}k</text>
+      </svg>
+    );
+  };
+
   return (
     <div className="space-y-5">
+      {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         {cards.map((c,i) => (
           <div key={i} className={CSS.statCard(c.bg, c.border)}>
             <div className="flex items-center justify-between mb-3">
               <p className="text-[10px] font-black text-[#6b7280] uppercase tracking-widest leading-tight">{c.label}</p>
-              <div className={`w-8 h-8 rounded-xl ${c.bg} border ${c.border} flex items-center justify-center`}><c.icon size={14} className={c.color} /></div>
+              <div className={`w-8 h-8 rounded-xl ${c.bg} border ${c.border} flex items-center justify-center`}><c.icon size={14} className={c.color}/></div>
             </div>
             <p className={`text-2xl lg:text-3xl font-black ${c.color}`}>{c.value}</p>
           </div>
         ))}
       </div>
+
+      {/* Live orders + sidebar */}
       <div className="grid lg:grid-cols-3 gap-4 lg:gap-5">
         <div className={`lg:col-span-2 ${CSS.panel} p-5`}>
-          <div className="flex items-center gap-2 mb-4"><Flame size={13} className="text-[#e63946]" /><h3 className="font-black text-white text-sm">Live Orders</h3><span className={CSS.badge('primary')}>{liveOrders.length}</span></div>
+          <div className="flex items-center gap-2 mb-4"><Flame size={13} className="text-[#e63946]"/><h3 className="font-black text-white text-sm">Live Orders</h3><span className={CSS.badge('primary')}>{liveOrders.length}</span></div>
           {liveOrders.length === 0 ? <p className="text-[#4b5563] text-sm text-center py-8">No active orders</p> : (
-            <div className="space-y-2 max-h-56 overflow-y-auto">
+            <div className="space-y-2 max-h-48 overflow-y-auto">
               {liveOrders.map(o => (
                 <div key={o.id} className="flex items-center justify-between bg-white/[0.03] rounded-xl px-4 py-3 hover:bg-white/[0.05] transition-colors">
-                  <div><p className="text-xs font-black text-white">{o.id}</p><p className="text-[11px] text-[#6b7280] mt-0.5">{o.table_number ? `Table ${o.table_number}` : o.order_type} · ₹{parseFloat(o.total).toFixed(2)}</p></div>
+                  <div><p className="text-xs font-black text-white">{o.id}</p><p className="text-[11px] text-[#6b7280] mt-0.5">{o.table_number?`Table ${o.table_number}`:o.order_type} · ₹{parseFloat(o.total).toFixed(2)}</p></div>
                   <span className={CSS.badge(o.status==='pending'?'yellow':o.status==='confirmed'?'blue':'orange')}>{o.status}</span>
                 </div>
               ))}
             </div>
           )}
         </div>
-        <div className="space-y-4">
-          <div className={`${CSS.panel} p-5`}>
-            <div className="flex items-center gap-2 mb-3"><AlertCircle size={14} className="text-red-400" /><h3 className="font-black text-white text-sm">Low Stock</h3><span className={CSS.badge('red')}>{lowStock.length}</span></div>
-            {lowStock.length === 0 ? <p className="text-[#4b5563] text-xs">All stock levels OK ✓</p> : (
-              <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                {lowStock.map(i => (<div key={i.id} className="flex justify-between items-center text-xs bg-red-500/[0.07] rounded-lg px-3 py-2 border border-red-500/10"><span className="text-white font-bold">{i.name}</span><span className="text-red-400 font-black">{i.stock} {i.unit}</span></div>))}
+        <div className="space-y-3">
+          <div className={`${CSS.panel} p-4`}>
+            <div className="flex items-center gap-2 mb-3"><AlertCircle size={14} className="text-red-400"/><h3 className="font-black text-white text-sm">Low Stock</h3><span className={CSS.badge('red')}>{lowStock.length}</span></div>
+            {lowStock.length === 0 ? <p className="text-[#4b5563] text-xs">All stock OK ✓</p> : (
+              <div className="space-y-1.5 max-h-28 overflow-y-auto">
+                {lowStock.map(i => (<div key={i.id} className="flex justify-between items-center text-xs bg-red-500/[0.07] rounded-lg px-3 py-2 border border-red-500/10"><span className="text-white font-bold truncate">{i.name}</span><span className="text-red-400 font-black">{i.stock}{i.unit}</span></div>))}
               </div>
             )}
           </div>
-          <div className={`${CSS.panel} p-5`}>
-            <div className="flex items-center gap-2 mb-3"><Star size={14} className="text-amber-400" /><h3 className="font-black text-white text-sm">Top Items</h3></div>
-            {topItems.length === 0 ? <p className="text-[#4b5563] text-xs">No data yet</p> : (
-              <div className="space-y-2">{topItems.slice(0,5).map((item,i) => (<div key={i} className="flex justify-between items-center text-xs"><div className="flex items-center gap-2"><span className="text-[#4b5563] font-black w-4">{i+1}</span><span className="text-white">{item.name}</span></div><span className="text-[#e63946] font-black">{item.count}×</span></div>))}</div>
-            )}
+          <div className={`${CSS.panel} p-4`}>
+            <div className="flex items-center gap-2 mb-2"><TrendingUp size={14} className="text-emerald-400"/><h3 className="font-black text-white text-sm">Summary</h3></div>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between"><span className="text-[#6b7280]">Month Revenue</span><span className="text-emerald-400 font-black">₹{(dashStats?.month?.revenue||0).toFixed(0)}</span></div>
+              <div className="flex justify-between"><span className="text-[#6b7280]">Month Orders</span><span className="text-sky-400 font-black">{dashStats?.month?.orders||0}</span></div>
+              <div className="flex justify-between"><span className="text-[#6b7280]">Today Reservations</span><span className="text-purple-400 font-black">{dashStats?.reservations?.todayCount||0}</span></div>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* ── Analytics Dashboard ── */}
+      <div className={`${CSS.panel} p-5`}>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <div className="flex items-center gap-2">
+            <BarChart3 size={15} className="text-[#e63946]"/>
+            <h3 className="font-black text-white text-sm">Menu Sales Analytics</h3>
+            {analyticsLoading && <Loader size={13} className="animate-spin text-[#e63946]"/>}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {[{id:'today',label:'Today'},{id:'week',label:'7 Days'},{id:'month',label:'30 Days'},{id:'custom',label:'Custom'}].map(p => (
+              <button key={p.id} onClick={() => setPeriod(p.id)}
+                className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${period===p.id?'bg-gradient-to-r from-[#e63946] to-[#c1121f] text-white shadow-lg shadow-red-900/20':'bg-white/[0.04] text-[#6b7280] border border-white/[0.08] hover:text-white'}`}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {period === 'custom' && (
+          <div className="flex items-center gap-3 mb-4 flex-wrap bg-white/[0.03] rounded-xl p-3 border border-white/[0.06]">
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] text-[#6b7280] font-black uppercase tracking-widest whitespace-nowrap">From:</label>
+              <input type="date" value={customFrom} onChange={e=>setCustomFrom(e.target.value)} className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#e63946]/60"/>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] text-[#6b7280] font-black uppercase tracking-widest whitespace-nowrap">To:</label>
+              <input type="date" value={customTo} onChange={e=>setCustomTo(e.target.value)} className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#e63946]/60"/>
+            </div>
+            <button onClick={handleCustomApply} disabled={!customFrom||!customTo}
+              className="flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest bg-gradient-to-r from-[#e63946] to-[#c1121f] text-white hover:from-[#ff4757] hover:to-[#e63946] transition-all disabled:opacity-40">
+              Apply
+            </button>
+          </div>
+        )}
+
+        {analyticsLoading ? (
+          <div className="flex justify-center items-center py-16"><Loader size={28} className="animate-spin text-[#e63946]"/></div>
+        ) : topItems.length === 0 ? (
+          <div className="text-center py-12"><BarChart3 size={32} className="mx-auto mb-3 text-white/10"/><p className="text-[#4b5563] text-sm">No sales data for this period</p></div>
+        ) : (
+          <div className="grid lg:grid-cols-5 gap-6">
+            {/* Bar chart — 3/5 width */}
+            <div className="lg:col-span-3">
+              <p className="text-[10px] font-black text-[#6b7280] uppercase tracking-widest mb-3">Items Sold (Quantity) — sorted highest first</p>
+              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                {topItems.map((item, i) => {
+                  const pct = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
+                  return (
+                    <div key={i} className="flex items-center gap-3">
+                      <span className="text-[10px] font-black text-[#4b5563] w-4 shrink-0 text-right">{i+1}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-bold text-white truncate pr-2 max-w-[160px]">{item.name}</span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[10px] font-black text-[#e63946]">{item.count}×</span>
+                            {(item.revenue||0) > 0 && <span className="text-[10px] text-emerald-400 font-bold">₹{(item.revenue||0).toFixed(0)}</span>}
+                          </div>
+                        </div>
+                        <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
+                          <div className="h-full rounded-full transition-all duration-700" style={{ width:`${pct}%`, background:PIE_COLORS[i%PIE_COLORS.length] }}/>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Pie chart — 2/5 width */}
+            <div className="lg:col-span-2">
+              <p className="text-[10px] font-black text-[#6b7280] uppercase tracking-widest mb-3">Revenue Distribution</p>
+              <div className="flex justify-center mb-3">
+                <PieChartSVG data={topItems} size={148}/>
+              </div>
+              <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                {topItems.slice(0,8).map((item,i) => (
+                  <div key={i} className="flex items-center gap-2 text-[10px]">
+                    <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{background:PIE_COLORS[i%PIE_COLORS.length]}}/>
+                    <span className="text-[#9ca3af] truncate flex-1">{item.name}</span>
+                    <span className="text-white font-black shrink-0">{totalRevenue>0?((( item.revenue||0)/totalRevenue)*100).toFixed(1):0}%</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 pt-3 border-t border-white/[0.06] space-y-1">
+                <div className="flex justify-between text-xs"><span className="text-[#6b7280]">Total Revenue</span><span className="text-emerald-400 font-black">₹{totalRevenue.toFixed(0)}</span></div>
+                <div className="flex justify-between text-xs"><span className="text-[#6b7280]">Total Qty Sold</span><span className="text-[#e63946] font-black">{topItems.reduce((s,i)=>s+i.count,0)}×</span></div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -876,7 +1026,7 @@ const Dashboard = () => {
   };
   const [activeTab, setActiveTab] = useState(getInitialTab());
   const [notifications, setNotifications] = useState([]);
-  const [topItems, setTopItems] = useState([]);
+
   const [feedbackCount, setFeedbackCount] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -886,11 +1036,11 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchOrders(); fetchMenu(); fetchIngredients();
-    if (['owner','manager'].includes(user.role)) { fetchDashStats(); analyticsAPI.getTopItems().then(r=>setTopItems(r.data)).catch(()=>{}); feedbackAPI.getAll({ status:'open' }).then(r=>setFeedbackCount(r.data.length)).catch(()=>{}); }
+    if (['owner','manager'].includes(user.role)) { fetchDashStats();  feedbackAPI.getAll({ status:'open' }).then(r=>setFeedbackCount(r.data.length)).catch(()=>{}); }
     loadNotifications();
     const interval = setInterval(()=>{ fetchOrders(); loadNotifications(); }, 30000);
     return ()=>clearInterval(interval);
-  },[]);
+  }, []);
 
   const claimOrder = async (orderId) => { try { await ordersAPI.claim(orderId); fetchOrders(); } catch(e) { console.error('claimOrder', e); } };
 
@@ -916,7 +1066,7 @@ const Dashboard = () => {
         <main className="flex-1 px-4 lg:px-8 py-5 lg:py-7 max-w-screen-2xl">
           <AnimatePresence mode="wait">
             <MotionDiv key={activeTab} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}} transition={{duration:0.12}}>
-              {activeTab==='overview'      && <OverviewTab orders={orders} dashStats={dashStats} menu={menu} ingredients={ingredients} topItems={topItems}/>}
+              {activeTab==='overview'      && <OverviewTab orders={orders} dashStats={dashStats} menu={menu} ingredients={ingredients}/>}
               {activeTab==='pos'           && <POS user={user}/>}
               {activeTab==='orders'        && <OrdersTab orders={orders} updateOrderStatus={updateOrderStatus} deleteOrder={deleteOrder} claimOrder={claimOrder} user={user}/>}
               {activeTab==='menu'          && <MenuTab menu={menu} toggleMenuAvailability={toggleMenuAvailability} fetchMenu={fetchMenu}/>}

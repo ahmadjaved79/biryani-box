@@ -102,7 +102,7 @@ export const notificationsAPI = {
 export const analyticsAPI = {
   getDashboard: () => api.get('/analytics/dashboard'),
   getRevenue: (range) => api.get('/analytics/revenue', { params: { range } }),
-  getTopItems: () => api.get('/analytics/top-items'),
+  getTopItems: (params) => api.get(`/analytics/top-items`, { params }),
 };
 
 export default api;
