@@ -19,11 +19,9 @@ const Reservations = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Available tables
   const [availableTables, setAvailableTables] = useState([]);
   const [tablesLoading, setTablesLoading] = useState(true);
 
-  // My reservations (status tracking)
   const [myReservations, setMyReservations] = useState([]);
   const [myResLoading, setMyResLoading] = useState(false);
 
@@ -74,18 +72,11 @@ const Reservations = () => {
         reservation_time: form.reservation_time,
         special_requests: form.special_requests,
         occasion: form.occasion,
-        // Store first selected table id (schema uses single table_id)
         table_id: form.table_ids.length > 0 ? form.table_ids[0] : null,
-        // Store all selected table numbers as string in notes
-        selected_tables: form.table_ids
-          .map(id => availableTables.find(t => t.id === id)?.table_number)
-          .filter(Boolean)
-          .join(', '),
       };
       const res = await reservationsAPI.create(payload);
       setSubmittedData(res.data);
       setSubmitted(true);
-      // Fetch status if email given
       if (form.customer_email) await fetchMyReservations(form.customer_email);
     } catch (err) {
       setError(err.response?.data?.error || 'Booking failed. Please try again.');
@@ -98,7 +89,6 @@ const Reservations = () => {
     setForm({ customer_name:'', customer_phone:'', customer_email:'', party_size:2, reservation_date:'', reservation_time:'', special_requests:'', occasion:'', table_ids:[] });
   };
 
-  // Status config
   const statusConfig = {
     pending:   { color:'text-amber-400',   bg:'bg-amber-500/10',   border:'border-amber-500/30',  icon:Clock,        label:'Pending Review', desc:'Our team is reviewing your reservation.' },
     confirmed: { color:'text-emerald-400', bg:'bg-emerald-500/10', border:'border-emerald-500/30', icon:CheckCircle,  label:'Confirmed ✓',    desc:'Your reservation is confirmed! We look forward to seeing you.' },
@@ -132,11 +122,9 @@ const Reservations = () => {
 
         <AnimatePresence mode="wait">
           {submitted ? (
-            /* ── Success + Status View ── */
             <motion.div key="success" initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }} exit={{ opacity:0 }}
               className="space-y-6 max-w-2xl mx-auto">
 
-              {/* Confirmation card */}
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-8 text-center">
                 <CheckCircle size={56} className="text-emerald-400 mx-auto mb-4" />
                 <h2 className="text-2xl font-bold text-white mb-2">Reservation Submitted!</h2>
@@ -148,7 +136,6 @@ const Reservations = () => {
                 {form.occasion && <p className="text-text-muted text-sm mt-1">🎉 {form.occasion}</p>}
               </div>
 
-              {/* Live status tracker */}
               {submittedData && (
                 <div className="bg-secondary/20 border border-white/10 rounded-2xl p-6">
                   <div className="flex items-center justify-between mb-5">
@@ -161,7 +148,6 @@ const Reservations = () => {
                     </button>
                   </div>
 
-                  {/* Current reservation status */}
                   {(() => {
                     const current = myReservations.find(r => r.id === submittedData.id) || submittedData;
                     const sc = statusConfig[current.status] || statusConfig.pending;
@@ -193,7 +179,7 @@ const Reservations = () => {
                             ✅ Your table is reserved! Please arrive 10 mins early.
                           </div>
                         )}
-                        {(current.status === 'cancelled') && (
+                        {current.status === 'cancelled' && (
                           <div className="mt-3 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-xs text-red-300">
                             ❌ This reservation was not accepted. Please contact us or book again.
                           </div>
@@ -204,7 +190,6 @@ const Reservations = () => {
                 </div>
               )}
 
-              {/* All my reservations (if email provided) */}
               {myReservations.length > 1 && (
                 <div className="bg-secondary/20 border border-white/10 rounded-2xl p-6">
                   <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Your Other Reservations</h3>
@@ -230,10 +215,8 @@ const Reservations = () => {
               </button>
             </motion.div>
           ) : (
-            /* ── Booking Form ── */
             <motion.div key="form" initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}>
               <div className="grid lg:grid-cols-3 gap-10">
-                {/* Form */}
                 <div className="lg:col-span-2 bg-secondary/20 border border-white/10 rounded-2xl p-8">
                   <h2 className="text-2xl font-bold mb-6">Booking Details</h2>
                   {error && <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl p-4 mb-6 text-sm">{error}</div>}
@@ -294,7 +277,6 @@ const Reservations = () => {
                       </div>
                     </div>
 
-                    {/* ── Table Selection from DB ── */}
                     <div>
                       <label className="text-xs font-bold text-text-muted uppercase tracking-wider block mb-2 flex items-center gap-2">
                         <LayoutGrid size={13} className="text-primary" />
@@ -347,7 +329,6 @@ const Reservations = () => {
                   </form>
                 </div>
 
-                {/* Info sidebar */}
                 <div className="space-y-5">
                   {[
                     { icon:Clock,  title:'Hours',       lines:['Mon–Thu: 11am–10pm','Fri–Sat: 11am–11pm','Sun: 12pm–9pm'] },
@@ -361,7 +342,6 @@ const Reservations = () => {
                     </div>
                   ))}
 
-                  {/* Status tracker for returning customers */}
                   <div className="bg-secondary/20 border border-white/10 rounded-xl p-5">
                     <div className="flex items-center gap-3 mb-3"><RefreshCw size={18} className="text-primary" /><h4 className="font-bold text-white">Track Your Reservation</h4></div>
                     <p className="text-text-muted text-xs mb-3">Enter your email to see existing reservations</p>

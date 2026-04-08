@@ -41,9 +41,9 @@ const FeedbackPage = () => {
   return (
     <div className="min-h-screen bg-bg-main text-white">
       <Navbar />
-      <div className="container max-w-3xl mx-auto px-6 pt-28 pb-20">
+      <div className="container max-w-3xl mx-auto mt-8 px-6 pt-28 pb-20">
         <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="text-center mb-12">
-          <span className="text-primary font-black uppercase tracking-[0.4em] text-[12px] mb-4 block">Your Voice Matters</span>
+          <span className="text-primary font-black uppercase tracking-[0.4em] text-[12px] mt-32 mb-4 block">Your Voice Matters</span>
           <h1 className="text-5xl font-black mb-4">Feedback & <span className="text-primary">Complaints</span></h1>
           <p className="text-text-muted max-w-xl mx-auto">We read every message. Your feedback directly reaches our management team.</p>
         </motion.div>

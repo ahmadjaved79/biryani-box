@@ -5,9 +5,13 @@ import { authenticate, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
 
-const transporter = nodemailer.createTransport({
+// Create transporter lazily on each send so env vars are always fresh
+const createTransporter = () => nodemailer.createTransport({
   service: 'gmail',
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
 });
 
 router.get('/', async (req, res) => {
@@ -30,19 +34,44 @@ router.post('/', authenticate, authorize('owner', 'manager'), async (req, res) =
     const { data, error } = await supabase.from('announcements').insert([insertData]).select().single();
     if (error) return res.status(400).json({ error: error.message });
 
-    // Send email to customers if opted
+    // Send email to all registered customers if opted
     if (send_email && ['all', 'customer'].includes(req.body.target)) {
-      const { data: customers } = await supabase.from('customers').select('email, name').eq('is_active', true).eq('is_email_verified', true);
+      // Removed is_email_verified filter — column does not exist in schema
+      const { data: customers } = await supabase
+        .from('customers')
+        .select('email, name')
+        .eq('is_active', true)
+        .not('email', 'is', null);
+
       if (customers && customers.length > 0) {
-        const emails = customers.map(c => c.email);
-        try {
-          await transporter.sendMail({
-            from: `"SpiceRoute" <${process.env.EMAIL_USER}>`,
-            bcc: emails,
-            subject: `${req.body.title} — SpiceRoute`,
-            html: `<h2>${req.body.title}</h2><p>${req.body.message}</p><hr/><p style="font-size:12px;color:#999">You received this because you have an account with SpiceRoute.</p>`,
-          });
-        } catch (mailErr) { console.error('Announcement mail error:', mailErr.message); }
+        const emails = customers.map(c => c.email).filter(Boolean);
+        if (emails.length > 0) {
+          try {
+            const transporter = createTransporter();
+            await transporter.sendMail({
+              from: `"Spice Route" <${process.env.EMAIL_USER}>`,
+              bcc: emails,
+              subject: `${req.body.title} — SpiceRoute`,
+              html: `
+                <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#1a1a1a;color:#fff;border-radius:12px;overflow:hidden;">
+                  <div style="background:#e63946;padding:20px;text-align:center;">
+                    <h1 style="margin:0;font-size:22px;color:#fff;">SPICE ROUTE</h1>
+                  </div>
+                  <div style="padding:28px;">
+                    <h2 style="color:#e63946;margin-top:0;">${req.body.title}</h2>
+                    <p style="color:#ccc;line-height:1.6;">${req.body.message}</p>
+                  </div>
+                  <div style="padding:14px;text-align:center;background:#111;color:#555;font-size:12px;">
+                    You received this because you have an account with SpiceRoute.
+                  </div>
+                </div>`,
+            });
+            console.log(`Announcement email sent to ${emails.length} customers`);
+          } catch (mailErr) {
+            console.error('Announcement mail error:', mailErr.message);
+            // Don't fail the request — announcement is already saved
+          }
+        }
       }
     }
 
